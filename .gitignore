@@ -1,0 +1,34 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs / Editors
+.idea/
+*.iml
+*.iws
+.project
+.classpath
+.cproject
+.settings/
+.vscode/
+*.swp
+*~
+
+# Frontend (if added later)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Mac environment files
+.env
+.env.local
+
+# Logs
+logs/
+*.log
