@@ -1,4 +1,4 @@
-package webket_monster.backend.dto;
+package webket_monster.backend.item.dto;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;

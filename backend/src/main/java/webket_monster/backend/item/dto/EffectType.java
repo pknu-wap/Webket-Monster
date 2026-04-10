@@ -1,4 +1,4 @@
-package webket_monster.backend.dto;
+package webket_monster.backend.item.dto;
 
 public enum EffectType {
     EXP_BOOST,

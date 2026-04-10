@@ -1,4 +1,4 @@
-package webket_monster.backend.entity;
+package webket_monster.backend.item.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;

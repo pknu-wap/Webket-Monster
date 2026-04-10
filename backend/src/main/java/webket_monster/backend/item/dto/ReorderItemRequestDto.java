@@ -1,4 +1,4 @@
-package webket_monster.backend.dto;
+package webket_monster.backend.item.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -7,7 +7,7 @@ import lombok.Getter;
 import java.util.List;
 
 @Getter
-public class ReorderItemRequest {
+public class ReorderItemRequestDto {
 
     @NotNull(message = "itemOrderList는 필수입니다.")
     @Valid

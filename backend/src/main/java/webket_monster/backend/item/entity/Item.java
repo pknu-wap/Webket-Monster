@@ -1,10 +1,10 @@
-package webket_monster.backend.entity;
+package webket_monster.backend.item.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import webket_monster.backend.dto.EffectType;
+import webket_monster.backend.item.dto.EffectType;
 
 @Entity
 @Table(name = "item")
@@ -24,5 +24,5 @@ public class Item {
     private EffectType effectType;
 
     @Column(nullable = false)
-    private Integer value;
+    private int itemValue;
 }

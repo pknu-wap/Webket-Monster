@@ -1,8 +1,8 @@
-package webket_monster.backend.dto;
+package webket_monster.backend.item.dto;
 
 import lombok.Builder;
 import lombok.Getter;
-import webket_monster.backend.entity.Item;
+import webket_monster.backend.item.entity.Item;
 
 @Getter
 @Builder
@@ -18,7 +18,7 @@ public class UseItemResponse {
                 .itemId(item.getId())
                 .name(item.getName())
                 .effectType(item.getEffectType())
-                .value(item.getValue())
+                .value(item.getItemValue())
                 .build();
     }
 }
