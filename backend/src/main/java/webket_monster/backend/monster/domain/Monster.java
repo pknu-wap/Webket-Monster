@@ -1,12 +1,16 @@
-package webket_monster.backend.domain;
+package webket_monster.backend.monster.domain;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Item {
+@Table(name = "monsters")
+public class Monster {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -16,7 +20,7 @@ public class Item {
     private String name;
 
     @Builder
-    public Item(String name) {
+    public Monster(String name) {
         this.name = name;
     }
 }

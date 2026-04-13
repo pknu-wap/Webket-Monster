@@ -1,6 +1,7 @@
-package webket_monster.backend.repository;
+package webket_monster.backend.user.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import webket_monster.backend.user.domain.User;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
