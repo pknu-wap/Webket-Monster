@@ -1,0 +1,28 @@
+{
+  "name": "frontend",
+  "displayName": "Webket-Monster",
+  "version": "1.0.0",
+  "description": "Browser extension game",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "plasmo dev",
+    "build": "plasmo build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@plasmohq/storage": "^1.15.0",
+    "pixi.js": "^8.18.1",
+    "plasmo": "^0.90.5",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.40",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "puppeteer": "^24.42.0",
+    "typescript": "^6.0.3"
+  }
+}

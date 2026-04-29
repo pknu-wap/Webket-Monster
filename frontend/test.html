@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pukyong-mon Test</title>
+    <script src="https://pixijs.download/v8.1.0/pixi.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: url('https://www.pknu.ac.kr/images/main/bg_visual_01.jpg') no-repeat center center fixed;
+            background-size: cover;
+            background-color: #f0f0f0;
+        }
+        #monster-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            z-index: 9999999;
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #catch-message {
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            white-space: nowrap;
+            display: none;
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="monster-container">
+        <div id="catch-message"></div>
+        <div id="pixi-canvas"></div>
+    </div>
+
+    <script>
+        (async () => {
+            const container = document.getElementById('monster-container');
+            const pixiCanvas = document.getElementById('pixi-canvas');
+            const catchMessage = document.getElementById('catch-message');
+            
+            // Initial position
+            let currentX = Math.max(10, Math.floor(Math.random() * (window.innerWidth - 150)));
+            let currentY = Math.max(10, Math.floor(Math.random() * (window.innerHeight - 150)));
+            let targetX = currentX;
+            let targetY = currentY;
+            
+            container.style.left = currentX + 'px';
+            container.style.top = currentY + 'px';
+
+            const app = new PIXI.Application();
+            await app.init({
+                width: 150,
+                height: 150,
+                backgroundAlpha: 0,
+            });
+            
+            pixiCanvas.appendChild(app.canvas);
+
+            let isCaught = false;
+
+            // Use the locally generated image or a fallback
+            const imageUrl = "assets/pukyong_mon.png";
+
+            try {
+                const texture = await PIXI.Assets.load(imageUrl);
+                const sprite = new PIXI.Sprite(texture);
+                
+                sprite.width = 100;
+                sprite.height = 100;
+                sprite.anchor.set(0.5);
+                sprite.x = app.screen.width / 2;
+                sprite.y = app.screen.height / 2;
+                
+                sprite.eventMode = 'static';
+                sprite.cursor = 'pointer';
+                
+                let elapsed = 0;
+                app.ticker.add((ticker) => {
+                    if (isCaught) return;
+                    elapsed += ticker.deltaTime;
+                    sprite.y = (app.screen.height / 2) + Math.sin(elapsed / 10.0) * 10;
+
+                    const dx = targetX - currentX;
+                    const dy = targetY - currentY;
+                    
+                    if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+                        currentX += dx * 0.01 * ticker.deltaTime;
+                        currentY += dy * 0.01 * ticker.deltaTime;
+                        
+                        if (dx > 0) sprite.scale.x = Math.abs(sprite.scale.x) * -1;
+                        else sprite.scale.x = Math.abs(sprite.scale.x);
+
+                        container.style.left = currentX + 'px';
+                        container.style.top = currentY + 'px';
+                    }
+                });
+
+                const wanderTimer = setInterval(() => {
+                    if (isCaught) return;
+                    targetX = Math.max(10, Math.floor(Math.random() * (window.innerWidth - 150)));
+                    targetY = Math.max(10, Math.floor(Math.random() * (window.innerHeight - 150)));
+                }, 3000);
+
+                sprite.on('pointerdown', async () => {
+                    if (isCaught) return;
+                    isCaught = true;
+                    clearInterval(wanderTimer);
+                    
+                    app.ticker.add((ticker) => {
+                        sprite.rotation += 0.5 * ticker.deltaTime;
+                        sprite.scale.x *= 0.9;
+                        sprite.scale.y *= 0.9;
+                        
+                        if (Math.abs(sprite.scale.x) <= 0.01) {
+                            app.destroy(true);
+                        }
+                    });
+
+                    catchMessage.textContent = "You caught a 부경몬!";
+                    catchMessage.style.display = "block";
+                    
+                    setTimeout(() => {
+                        container.style.display = "none";
+                    }, 3000);
+                });
+
+                app.stage.addChild(sprite);
+            } catch (err) {
+                console.error("Failed to load monster texture:", err);
+            }
+        })();
+    </script>
+</body>
+</html>
