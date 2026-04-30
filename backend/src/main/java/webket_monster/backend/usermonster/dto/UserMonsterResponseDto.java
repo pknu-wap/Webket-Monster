@@ -1,15 +1,14 @@
-package webket_monster.backend.dto;
+package webket_monster.backend.usermonster.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserMonsterResponseDto {
+
     private Long userMonsterId;
     private Long monsterId;
     private String name;

@@ -1,10 +1,11 @@
-package webket_monster.backend.monster.domain;
+package webket_monster.backend.usermonster.domain;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import webket_monster.backend.monster.domain.Monster;
 import webket_monster.backend.user.domain.User;
 
 @Entity
@@ -42,8 +43,32 @@ public class UserMonster {
         this.exp = exp;
         this.isActive = isActive;
     }
-    
-    // 몬스터 장착 상태 변경 편의 메서드
+
+    public int getRequiredExpForNextLevel() {
+        return 100 * (level * level);
+    }
+
+    public void addExp(int earnedExp) {
+        this.exp += earnedExp;
+
+        while (this.exp >= getRequiredExpForNextLevel()) {
+            this.exp -= getRequiredExpForNextLevel();
+            this.level++;
+        }
+    }
+
+    public void evolve(Monster nextEvolutionMonster) {
+        if (this.monster.getNextEvolutionMonsterId() == null) {
+            throw new IllegalStateException("다음 진화 몬스터가 없습니다.");
+        }
+
+        if (this.level < this.monster.getEvolutionRequiredLevel()) {
+            throw new IllegalStateException("진화 가능 레벨이 아닙니다.");
+        }
+
+        this.monster = nextEvolutionMonster;
+    }
+
     public void changeActive(boolean isActive) {
         this.isActive = isActive;
     }
