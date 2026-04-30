@@ -19,8 +19,31 @@ public class Monster {
     @Column(nullable = false)
     private String name;
 
+    private String type;
+
+    private String characteristics;
+
+    @Column(nullable = false)
+    private Integer baseLevel;
+
+    private Long nextEvolutionMonsterId;
+
+    private Integer evolutionRequiredLevel;
+
     @Builder
-    public Monster(String name) {
+    public Monster(
+            String name,
+            String type,
+            String characteristics,
+            Integer baseLevel,
+            Long nextEvolutionMonsterId,
+            Integer evolutionRequiredLevel
+    ) {
         this.name = name;
+        this.type = type;
+        this.characteristics = characteristics;
+        this.baseLevel = baseLevel;
+        this.nextEvolutionMonsterId = nextEvolutionMonsterId;
+        this.evolutionRequiredLevel = evolutionRequiredLevel;
     }
 }
