@@ -2,12 +2,11 @@ package webket_monster.backend.monster.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import webket_monster.backend.monster.dto.CatchMonsterRequestDto;
 import webket_monster.backend.monster.dto.CatchMonsterResponseDto;
+import webket_monster.backend.monster.dto.MonsterSpawnResponseDto;
+import webket_monster.backend.usermonster.service.UserMonsterService;
 import webket_monster.backend.monster.service.MonsterService;
 
 @RestController
@@ -16,11 +15,23 @@ import webket_monster.backend.monster.service.MonsterService;
 public class MonsterController {
 
     private final MonsterService monsterService;
+    private final UserMonsterService userMonsterService;
 
+    // spawn
+    @PostMapping("/spawn")
+    public ResponseEntity<MonsterSpawnResponseDto> spawnMonster() {
+        return ResponseEntity.ok(monsterService.spawnMonster());
+    }
+
+    // catch
     @PostMapping("/catch")
-    public ResponseEntity<CatchMonsterResponseDto> catchMonster(@RequestBody CatchMonsterRequestDto request) {
-        // TODO: Fetch user ID from Security Context
-        CatchMonsterResponseDto response = monsterService.catchMonster(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<CatchMonsterResponseDto> catchMonster(
+            @RequestBody CatchMonsterRequestDto request) {
+
+        Long dummyUserId = 1L;
+
+        return ResponseEntity.ok(
+                userMonsterService.catchMonster(dummyUserId, request)
+        );
     }
 }
