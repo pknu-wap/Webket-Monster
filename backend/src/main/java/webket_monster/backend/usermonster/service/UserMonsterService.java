@@ -12,6 +12,7 @@ import webket_monster.backend.usermonster.dto.ActiveMonsterRequestDto;
 import webket_monster.backend.usermonster.dto.EvolveResponseDto;
 import webket_monster.backend.usermonster.dto.LevelUpResponseDto;
 import webket_monster.backend.usermonster.dto.UserMonsterResponseDto;
+import webket_monster.backend.usermonster.dto.MonsterEffectResponseDto;
 import webket_monster.backend.usermonster.repository.UserMonsterRepository;
 
 @Service
@@ -115,5 +116,18 @@ public class UserMonsterService {
                 .forEach(monster -> monster.changeActive(false));
 
         userMonster.changeActive(true);
+    }
+
+    @Transactional
+    public MonsterEffectResponseDto triggerMonsterEffect(Long userMonsterId) {
+        UserMonster userMonster = userMonsterRepository.findById(userMonsterId)
+                .orElseThrow(() -> new IllegalArgumentException("보유한 몬스터를 찾을 수 없습니다."));
+
+        // TODO: 몬스터 이펙트 발동 조건 및 결과 처리 로직 추가 예정
+
+        return new MonsterEffectResponseDto(
+                userMonster.getId(),
+                "몬스터 이펙트가 발동되었습니다."
+        );
     }
 }
