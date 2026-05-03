@@ -22,6 +22,7 @@ export interface UserInfo {
   totalCaught: number;
   activeMonsterId?: string | null;
   showActiveMonster?: boolean;
+  spawnWildMonsters?: boolean;
 }
 
 export interface Inventory {
@@ -48,6 +49,7 @@ export interface IMonsterService {
   catchMonster(monsterId: string): Promise<{ success: boolean; newLevel?: number; message: string }>;
   setActiveMonster(caughtMonsterId: string | null): Promise<void>;
   toggleActiveMonsterDisplay(show: boolean): Promise<void>;
+  toggleWildMonsterSpawn(show: boolean): Promise<void>;
 }
 
 export class MockMonsterService implements IMonsterService {
@@ -70,6 +72,12 @@ export class MockMonsterService implements IMonsterService {
   async toggleActiveMonsterDisplay(show: boolean): Promise<void> {
     const userInfo = await this.getUserInfo();
     userInfo.showActiveMonster = show;
+    await storage.set("userInfo", userInfo);
+  }
+
+  async toggleWildMonsterSpawn(show: boolean): Promise<void> {
+    const userInfo = await this.getUserInfo();
+    userInfo.spawnWildMonsters = show;
     await storage.set("userInfo", userInfo);
   }
 

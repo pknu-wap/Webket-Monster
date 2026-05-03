@@ -123,6 +123,25 @@ export default function IndexPopup() {
               <p style={{ margin: 0 }}>Unique Species: <strong>{inventory.caughtMonsters.length} / {monsters.length}</strong></p>
             </div>
             
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+              <h2 style={{ fontSize: "16px", margin: 0, color: "#fff" }}>Wild Encounters</h2>
+              <label style={{ display: "flex", alignItems: "center", cursor: "pointer", fontSize: "12px", color: "#ccc" }}>
+                <input
+                  type="checkbox"
+                  checked={userInfo.spawnWildMonsters !== false}
+                  onChange={async (e) => {
+                    await monsterService.toggleWildMonsterSpawn(e.target.checked);
+                    setUserInfo(await monsterService.getUserInfo());
+                  }}
+                  style={{ marginRight: "6px" }}
+                />
+                Enable Spawns
+              </label>
+            </div>
+            <div style={{ background: "#2a2a40", padding: "12px", borderRadius: "8px", marginBottom: "16px" }}>
+              <p style={{ margin: 0, color: "#aaa", fontSize: "12px" }}>Allow wild monsters to appear randomly on supported web pages.</p>
+            </div>
+
             <h2 style={{ fontSize: "16px", marginTop: 0, color: "#fff" }}>Available Species</h2>
             <div style={{ display: "grid", gap: "8px" }}>
               {monsters.map(m => (

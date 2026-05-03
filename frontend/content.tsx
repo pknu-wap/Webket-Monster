@@ -79,6 +79,9 @@ export default function WebketMonsterOverlay() {
     const rollForSpawn = async () => {
       if (!window.location.hostname.includes("pknu.ac.kr")) return;
       
+      const userInfo = await monsterService.getUserInfo();
+      if (userInfo.spawnWildMonsters === false) return;
+      
       const monsters = await monsterService.getMonsterList();
       for (const monster of monsters.sort(() => Math.random() - 0.5)) {
         if (Math.random() < monster.probability) {
