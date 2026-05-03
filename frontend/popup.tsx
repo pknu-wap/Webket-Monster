@@ -16,6 +16,16 @@ export default function IndexPopup() {
     loadData();
   }, []);
 
+  const handleSetActive = async (caughtMonsterId: string) => {
+    await monsterService.setActiveMonster(caughtMonsterId);
+    setUserInfo(await monsterService.getUserInfo());
+  };
+
+  const handleUnequip = async () => {
+    await monsterService.setActiveMonster(null);
+    setUserInfo(await monsterService.getUserInfo());
+  };
+
   if (!userInfo || !inventory) {
     return <div style={{ padding: 16 }}>Loading...</div>;
   }
@@ -71,6 +81,42 @@ export default function IndexPopup() {
       <div style={{ flex: 1, padding: "16px", overflowY: "auto" }}>
         {activeTab === "info" && (
           <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+              <h2 style={{ fontSize: "16px", margin: 0, color: "#fff" }}>Active Monster</h2>
+              {userInfo.activeMonsterId && (
+                <label style={{ display: "flex", alignItems: "center", cursor: "pointer", fontSize: "12px", color: "#ccc" }}>
+                  <input
+                    type="checkbox"
+                    checked={userInfo.showActiveMonster !== false}
+                    onChange={async (e) => {
+                      await monsterService.toggleActiveMonsterDisplay(e.target.checked);
+                      setUserInfo(await monsterService.getUserInfo());
+                    }}
+                    style={{ marginRight: "6px" }}
+                  />
+                  Show on Screen
+                </label>
+              )}
+            </div>
+            <div style={{ background: "#2a2a40", padding: "12px", borderRadius: "8px", marginBottom: "16px", display: "flex", alignItems: "center" }}>
+              {userInfo.activeMonsterId ? (() => {
+                const activeCm = inventory.caughtMonsters.find(cm => cm.id === userInfo.activeMonsterId);
+                const activeData = activeCm ? getMonsterData(activeCm.monsterId) : null;
+                if (!activeCm || !activeData) return <span style={{ color: "#aaa", fontSize: "14px" }}>Active monster data not found.</span>;
+                return (
+                  <>
+                    <img src={activeData.imageUrl} alt={activeData.name} style={{ width: 48, height: 48, marginRight: "12px" }} />
+                    <div>
+                      <div style={{ fontWeight: "bold" }}>{activeData.name}</div>
+                      <div style={{ fontSize: "12px", color: "#4caf50", marginTop: "4px" }}>Lv.{activeCm.level}</div>
+                    </div>
+                  </>
+                );
+              })() : (
+                <span style={{ color: "#aaa", fontSize: "14px" }}>No active monster equipped.</span>
+              )}
+            </div>
+
             <h2 style={{ fontSize: "16px", marginTop: 0, color: "#fff" }}>Trainer Stats</h2>
             <div style={{ background: "#2a2a40", padding: "12px", borderRadius: "8px", marginBottom: "16px" }}>
               <p style={{ margin: "0 0 8px" }}>Total Caught: <strong>{userInfo.totalCaught}</strong></p>
@@ -118,6 +164,14 @@ export default function IndexPopup() {
                         </div>
                       )}
                       {cm.level < 5 && <div style={{ fontSize: "10px", color: "#888", marginTop: "2px" }}>EXP {cm.exp}/{requiredExp}</div>}
+                      
+                      <div style={{ marginTop: "8px" }}>
+                        {userInfo.activeMonsterId === cm.id ? (
+                          <button onClick={handleUnequip} style={{ background: "#f44336", color: "white", border: "none", borderRadius: "4px", padding: "6px", cursor: "pointer", fontSize: "12px", width: "100%", fontWeight: "bold" }}>Unequip</button>
+                        ) : (
+                          <button onClick={() => handleSetActive(cm.id)} style={{ background: "#4caf50", color: "white", border: "none", borderRadius: "4px", padding: "6px", cursor: "pointer", fontSize: "12px", width: "100%", fontWeight: "bold" }}>Equip</button>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

@@ -20,6 +20,8 @@ export interface CaughtMonster {
 export interface UserInfo {
   nickname: string;
   totalCaught: number;
+  activeMonsterId?: string | null;
+  showActiveMonster?: boolean;
 }
 
 export interface Inventory {
@@ -44,17 +46,31 @@ export interface IMonsterService {
   getMonsterList(): Promise<Monster[]>;
   getInventory(): Promise<Inventory>;
   catchMonster(monsterId: string): Promise<{ success: boolean; newLevel?: number; message: string }>;
+  setActiveMonster(caughtMonsterId: string | null): Promise<void>;
+  toggleActiveMonsterDisplay(show: boolean): Promise<void>;
 }
 
 export class MockMonsterService implements IMonsterService {
   async getUserInfo(): Promise<UserInfo> {
     const userInfo = await storage.get<UserInfo>("userInfo");
     if (!userInfo) {
-      const defaultInfo = { nickname: "Tamer", totalCaught: 0 };
+      const defaultInfo = { nickname: "Tamer", totalCaught: 0, activeMonsterId: null };
       await storage.set("userInfo", defaultInfo);
       return defaultInfo;
     }
     return userInfo;
+  }
+
+  async setActiveMonster(caughtMonsterId: string | null): Promise<void> {
+    const userInfo = await this.getUserInfo();
+    userInfo.activeMonsterId = caughtMonsterId;
+    await storage.set("userInfo", userInfo);
+  }
+
+  async toggleActiveMonsterDisplay(show: boolean): Promise<void> {
+    const userInfo = await this.getUserInfo();
+    userInfo.showActiveMonster = show;
+    await storage.set("userInfo", userInfo);
   }
 
   async getMonsterList(): Promise<Monster[]> {
