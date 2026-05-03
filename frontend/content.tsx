@@ -22,7 +22,7 @@ import { generateParticleUpdatePolyfill } from "pixi.js/lib/unsafe-eval/particle
 (PIXI.GlShaderSystem as any).prototype._generateShaderSync = generateShaderSyncPolyfill;
 if (PIXI.ParticleBuffer) (PIXI.ParticleBuffer as any).prototype.generateParticleUpdate = generateParticleUpdatePolyfill;
 
-import { monsterService, Monster } from "./services/monsterService";
+import { monsterService, Monster, getEvolvedMonsterData } from "./services/monsterService";
 
 export const config: PlasmoCSConfig = {
   matches: ["<all_urls>"]
@@ -34,7 +34,7 @@ export default function WebketMonsterOverlay() {
   const [spawnedMonster, setSpawnedMonster] = useState<Monster | null>(null);
   const [catchMessage, setCatchMessage] = useState<string | null>(null);
   const [pos, setPos] = useState({ x: -200, y: -200 }); // Start off-screen
-  const [activeMonsterData, setActiveMonsterData] = useState<Monster | null>(null);
+  const [activeMonsterInfo, setActiveMonsterInfo] = useState<{ id: string, name: string, imageUrl: string } | null>(null);
   const [activeMonsterLevel, setActiveMonsterLevel] = useState<number>(0);
 
   useEffect(() => {
@@ -49,18 +49,23 @@ export default function WebketMonsterOverlay() {
           const monsters = await monsterService.getMonsterList();
           const mData = monsters.find(m => m.id === activeCm.monsterId);
           if (mData) {
-            setActiveMonsterData(prev => prev?.id === mData.id ? prev : mData);
+            const evolvedInfo = getEvolvedMonsterData(mData, activeCm.level);
+            setActiveMonsterInfo(prev => 
+              (prev?.id === mData.id && prev?.imageUrl === evolvedInfo.imageUrl) 
+                ? prev 
+                : { id: mData.id, name: evolvedInfo.name, imageUrl: evolvedInfo.imageUrl }
+            );
             setActiveMonsterLevel(activeCm.level);
           } else {
-            setActiveMonsterData(null);
+            setActiveMonsterInfo(null);
             setActiveMonsterLevel(0);
           }
         } else {
-          setActiveMonsterData(null);
+          setActiveMonsterInfo(null);
           setActiveMonsterLevel(0);
         }
       } else {
-        setActiveMonsterData(null);
+        setActiveMonsterInfo(null);
         setActiveMonsterLevel(0);
       }
     };
@@ -207,7 +212,7 @@ export default function WebketMonsterOverlay() {
   }, [spawnedMonster]);
 
   useEffect(() => {
-    if (!activeMonsterData || !activeContainerRef.current) return;
+    if (!activeMonsterInfo || !activeContainerRef.current) return;
 
     let app = new PIXI.Application();
     let elapsed = 0;
@@ -224,7 +229,7 @@ export default function WebketMonsterOverlay() {
       activeContainerRef.current.appendChild(app.canvas);
 
       try {
-        const texture = await PIXI.Assets.load(activeMonsterData.imageUrl);
+        const texture = await PIXI.Assets.load(activeMonsterInfo.imageUrl);
         const sprite = new PIXI.Sprite(texture);
         
         sprite.width = 100;
@@ -244,9 +249,9 @@ export default function WebketMonsterOverlay() {
     return () => {
       if (app) app.destroy(true);
     };
-  }, [activeMonsterData]);
+  }, [activeMonsterInfo]);
 
-  if (!spawnedMonster && !activeMonsterData) return null;
+  if (!spawnedMonster && !activeMonsterInfo) return null;
 
   return (
     <>
@@ -284,7 +289,7 @@ export default function WebketMonsterOverlay() {
         </div>
       )}
 
-      {activeMonsterData && (
+      {activeMonsterInfo && (
         <div
           key="active-monster-container"
           style={{
@@ -314,7 +319,7 @@ export default function WebketMonsterOverlay() {
             gap: "6px"
           }}>
             <span style={{ color: "#4caf50" }}>Lv.{activeMonsterLevel}</span>
-            <span>{activeMonsterData.name}</span>
+            <span>{activeMonsterInfo.name}</span>
           </div>
           <div ref={activeContainerRef} />
         </div>

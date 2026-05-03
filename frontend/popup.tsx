@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { monsterService, UserInfo, Inventory, Monster } from "./services/monsterService";
+import { monsterService, UserInfo, Inventory, Monster, getEvolvedMonsterData } from "./services/monsterService";
 
 export default function IndexPopup() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
@@ -101,13 +101,14 @@ export default function IndexPopup() {
             <div style={{ background: "#2a2a40", padding: "12px", borderRadius: "8px", marginBottom: "16px", display: "flex", alignItems: "center" }}>
               {userInfo.activeMonsterId ? (() => {
                 const activeCm = inventory.caughtMonsters.find(cm => cm.id === userInfo.activeMonsterId);
-                const activeData = activeCm ? getMonsterData(activeCm.monsterId) : null;
-                if (!activeCm || !activeData) return <span style={{ color: "#aaa", fontSize: "14px" }}>Active monster data not found.</span>;
+                const activeBaseData = activeCm ? getMonsterData(activeCm.monsterId) : null;
+                if (!activeCm || !activeBaseData) return <span style={{ color: "#aaa", fontSize: "14px" }}>Active monster data not found.</span>;
+                const activeEvolvedData = getEvolvedMonsterData(activeBaseData, activeCm.level);
                 return (
                   <>
-                    <img src={activeData.imageUrl} alt={activeData.name} style={{ width: 48, height: 48, marginRight: "12px" }} />
+                    <img src={activeEvolvedData.imageUrl} alt={activeEvolvedData.name} style={{ width: 48, height: 48, marginRight: "12px" }} />
                     <div>
-                      <div style={{ fontWeight: "bold" }}>{activeData.name}</div>
+                      <div style={{ fontWeight: "bold" }}>{activeEvolvedData.name}</div>
                       <div style={{ fontSize: "12px", color: "#4caf50", marginTop: "4px" }}>Lv.{activeCm.level}</div>
                     </div>
                   </>
@@ -165,10 +166,11 @@ export default function IndexPopup() {
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 {inventory.caughtMonsters.map(cm => {
-                  const mData = getMonsterData(cm.monsterId);
-                  if (!mData) return null;
+                  const mBaseData = getMonsterData(cm.monsterId);
+                  if (!mBaseData) return null;
                   
-                  const requiredExp = mData.baseExpToNextLevel * cm.level;
+                  const mData = getEvolvedMonsterData(mBaseData, cm.level);
+                  const requiredExp = mBaseData.baseExpToNextLevel * cm.level;
                   const expPercent = cm.level >= 5 ? 100 : Math.min(100, (cm.exp / requiredExp) * 100);
 
                   return (
