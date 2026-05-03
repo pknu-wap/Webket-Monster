@@ -1,6 +1,13 @@
 import type { PlasmoCSConfig } from "plasmo";
 import { useEffect, useRef, useState } from "react";
 import * as PIXI from "pixi.js";
+
+// Force Parcel to statically bundle PixiJS environments/renderers to prevent dynamic import errors ('blpiu')
+import "pixi.js/lib/environment-browser/browserAll.mjs";
+import "pixi.js/lib/rendering/renderers/gl/WebGLRenderer.mjs";
+import "pixi.js/lib/rendering/renderers/canvas/CanvasRenderer.mjs";
+import "pixi.js/lib/rendering/renderers/gpu/WebGPURenderer.mjs";
+
 import { generateUniformsSyncPolyfill } from "pixi.js/lib/unsafe-eval/uniforms/generateUniformsSyncPolyfill.mjs";
 import { generateUboSyncPolyfillSTD40, generateUboSyncPolyfillWGSL } from "pixi.js/lib/unsafe-eval/ubo/generateUboSyncPolyfill.mjs";
 import { generateShaderSyncPolyfill } from "pixi.js/lib/unsafe-eval/shader/generateShaderSyncPolyfill.mjs";
