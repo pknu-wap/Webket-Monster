@@ -31,6 +31,15 @@ public class UserMonsterController {
         );
     }
 
+    @PostMapping("/user-monsters/{userMonsterId}/effect")
+    public ResponseEntity<MonsterEffectResponseDto> triggerMonsterEffect(
+            @PathVariable Long userMonsterId) {
+
+        return ResponseEntity.ok(
+                userMonsterService.triggerMonsterEffect(userMonsterId)
+        );
+    }
+
     @PatchMapping("/user-monsters/{userMonsterId}/evolve")
     public ResponseEntity<EvolveResponseDto> evolveMonster(@PathVariable Long userMonsterId) {
         return ResponseEntity.ok(userMonsterService.evolveMonster(userMonsterId));
