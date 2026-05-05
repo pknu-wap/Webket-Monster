@@ -36,7 +36,7 @@ export interface Inventory {
   caughtMonsters: CaughtMonster[];
 }
 
-const S3_BUCKET_URL = "https://webket-monster-monster-assets.s3.ap-northeast-2.amazonaws.com";
+const S3_BUCKET_URL = "https://webket-monster-monster-assets.s3.ap-southeast-2.amazonaws.com";
 
 // Mock Monster Data
 const MOCK_MONSTERS: Monster[] = [
