@@ -13,5 +13,6 @@ public class MonsterSpawnResponseDto {
     private String name;
     private String type;
     private int baseLevel;
+    private String imageUrl;
 
 }

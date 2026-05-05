@@ -30,6 +30,8 @@ public class Monster {
 
     private Integer evolutionRequiredLevel;
 
+    private String imageUrl;
+
     @Builder
     public Monster(
             String name,
@@ -37,7 +39,8 @@ public class Monster {
             String characteristics,
             Integer baseLevel,
             Long nextEvolutionMonsterId,
-            Integer evolutionRequiredLevel
+            Integer evolutionRequiredLevel,
+            String imageUrl
     ) {
         this.name = name;
         this.type = type;
@@ -45,5 +48,6 @@ public class Monster {
         this.baseLevel = baseLevel;
         this.nextEvolutionMonsterId = nextEvolutionMonsterId;
         this.evolutionRequiredLevel = evolutionRequiredLevel;
+        this.imageUrl = imageUrl;
     }
 }

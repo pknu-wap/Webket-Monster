@@ -17,4 +17,5 @@ public class UserMonsterResponseDto {
     private int exp;
     private int requiredExpForNextLevel;
     private String evolutionInfo;
+    private String imageUrl;
 }

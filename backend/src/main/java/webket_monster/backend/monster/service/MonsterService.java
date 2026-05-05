@@ -22,7 +22,8 @@ public class MonsterService {
                 monster.getId(),
                 monster.getName(),
                 monster.getType(),
-                monster.getBaseLevel()
+                monster.getBaseLevel(),
+                monster.getImageUrl()
         );
     }
 }
