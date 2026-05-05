@@ -66,7 +66,7 @@ const MOCK_MONSTERS: Monster[] = [
 export function getEvolvedMonsterData(monster: Monster, level: number): { name: string; imageUrl: string } {
   let currentName = monster.name;
   let currentImage = monster.imageUrl;
-  
+
   if (monster.evolutions) {
     const sortedEvolutions = [...monster.evolutions].sort((a, b) => b.levelThreshold - a.levelThreshold);
     for (const evo of sortedEvolutions) {
@@ -77,7 +77,7 @@ export function getEvolvedMonsterData(monster: Monster, level: number): { name: 
       }
     }
   }
-  
+
   return { name: currentName, imageUrl: currentImage };
 }
 
@@ -153,7 +153,7 @@ export class MockMonsterService implements IMonsterService {
       if (existingMonster.level < 5) {
         existingMonster.exp += 5; // Fixed exp per catch for now
         const requiredExp = monsterData.baseExpToNextLevel * existingMonster.level;
-        
+
         if (existingMonster.exp >= requiredExp) {
           existingMonster.level += 1;
           existingMonster.exp = 0;
@@ -163,7 +163,7 @@ export class MockMonsterService implements IMonsterService {
           message = `You caught another ${monsterData.name}! EXP increased.`;
         }
       } else {
-         message = `You caught a ${monsterData.name}, but it's already Max Level (Lv.5).`;
+        message = `You caught a ${monsterData.name}, but it's already Max Level (Lv.5).`;
       }
     } else {
       // New monster
