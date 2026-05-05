@@ -8,11 +8,7 @@ import webket_monster.backend.monster.dto.CatchMonsterRequestDto;
 import webket_monster.backend.monster.dto.CatchMonsterResponseDto;
 import webket_monster.backend.monster.repository.MonsterRepository;
 import webket_monster.backend.usermonster.domain.UserMonster;
-import webket_monster.backend.usermonster.dto.ActiveMonsterRequestDto;
-import webket_monster.backend.usermonster.dto.EvolveResponseDto;
-import webket_monster.backend.usermonster.dto.LevelUpResponseDto;
-import webket_monster.backend.usermonster.dto.UserMonsterResponseDto;
-import webket_monster.backend.usermonster.dto.MonsterEffectResponseDto;
+import webket_monster.backend.usermonster.dto.*;
 import webket_monster.backend.usermonster.repository.UserMonsterRepository;
 
 @Service
@@ -104,6 +100,22 @@ public class UserMonsterService {
                 nextMonster.getId(),
                 nextMonster.getName(),
                 "Successfully evolved!"
+        );
+    }
+
+    @Transactional
+    public MonsterActionResponseDto triggerMonsterAction(Long userMonsterId) {
+
+        UserMonster userMonster = userMonsterRepository.findById(userMonsterId)
+                .orElseThrow(() -> new IllegalArgumentException("몬스터를 찾을 수 없습니다."));
+
+        // TODO: 조건 로직 추가 (예: 레벨, 상태 등)
+
+        String result = "몬스터 액션이 발동되었습니다.";
+
+        return new MonsterActionResponseDto(
+                userMonster.getId(),
+                result
         );
     }
 

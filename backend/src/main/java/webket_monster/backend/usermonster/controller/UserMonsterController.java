@@ -22,6 +22,15 @@ public class UserMonsterController {
         return ResponseEntity.ok(userMonsterService.levelUpMonster(userMonsterId));
     }
 
+    @PostMapping("/user-monsters/{userMonsterId}/action")
+    public ResponseEntity<MonsterActionResponseDto> triggerMonsterAction(
+            @PathVariable Long userMonsterId) {
+
+        return ResponseEntity.ok(
+                userMonsterService.triggerMonsterAction(userMonsterId)
+        );
+    }
+
     @PostMapping("/user-monsters/{userMonsterId}/effect")
     public ResponseEntity<MonsterEffectResponseDto> triggerMonsterEffect(
             @PathVariable Long userMonsterId) {
