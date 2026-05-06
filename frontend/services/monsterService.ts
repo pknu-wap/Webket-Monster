@@ -36,28 +36,26 @@ export interface Inventory {
   caughtMonsters: CaughtMonster[];
 }
 
-import ppugongImg from "url:~assets/ppugong.png";
-import baekgyongImg from "url:~assets/baekgyong.png";
-import baekgyongAndPpugongImg from "url:~assets/baekgyong_and_ppugong.png";
+const S3_BUCKET_URL = "https://webket-monster-monster-assets.s3.ap-southeast-2.amazonaws.com";
 
 // Mock Monster Data
 const MOCK_MONSTERS: Monster[] = [
   {
     id: "pknu_01",
     name: "뿌공이",
-    imageUrl: ppugongImg,
+    imageUrl: `${S3_BUCKET_URL}/pukyong-1.png`,
     probability: 1.0, // 100% chance
     baseExpToNextLevel: 10,
     evolutions: [
       {
         levelThreshold: 3,
         name: "백경이",
-        imageUrl: baekgyongImg
+        imageUrl: `${S3_BUCKET_URL}/pukyong-2.png`
       },
       {
         levelThreshold: 5,
         name: "백경이와 뿌공이",
-        imageUrl: baekgyongAndPpugongImg
+        imageUrl: `${S3_BUCKET_URL}/pukyong-3.png`
       }
     ]
   }
@@ -66,7 +64,7 @@ const MOCK_MONSTERS: Monster[] = [
 export function getEvolvedMonsterData(monster: Monster, level: number): { name: string; imageUrl: string } {
   let currentName = monster.name;
   let currentImage = monster.imageUrl;
-  
+
   if (monster.evolutions) {
     const sortedEvolutions = [...monster.evolutions].sort((a, b) => b.levelThreshold - a.levelThreshold);
     for (const evo of sortedEvolutions) {
@@ -77,7 +75,7 @@ export function getEvolvedMonsterData(monster: Monster, level: number): { name: 
       }
     }
   }
-  
+
   return { name: currentName, imageUrl: currentImage };
 }
 
@@ -91,7 +89,7 @@ export interface IMonsterService {
   toggleWildMonsterSpawn(show: boolean): Promise<void>;
 }
 
-export class MockMonsterService implements IMonsterService {
+export class BackendMonsterService implements IMonsterService {
   async getUserInfo(): Promise<UserInfo> {
     const userInfo = await storage.get<UserInfo>("userInfo");
     if (!userInfo) {
@@ -159,11 +157,31 @@ export class MockMonsterService implements IMonsterService {
           existingMonster.exp = 0;
           newLevel = existingMonster.level;
           message = `Your ${monsterData.name} leveled up to Lv.${newLevel}!`;
+          
+          // Connect to backend: call level up API
+          try {
+             const levelUpRes = await fetch(`http://localhost:8080/api/user-monsters/1/levelup`, {
+                method: "POST"
+             });
+             const levelUpData = await levelUpRes.json();
+             console.log("Backend LevelUp Response:", levelUpData);
+             
+             // If level reaches evolution threshold (3 or 5), call evolve API
+             if (newLevel === 3 || newLevel === 5) {
+                const evolveRes = await fetch(`http://localhost:8080/api/user-monsters/1/evolve`, {
+                   method: "PATCH"
+                });
+                const evolveData = await evolveRes.json();
+                console.log("Backend Evolve Response:", evolveData);
+             }
+          } catch (e) {
+             console.error("Backend connection failed:", e);
+          }
         } else {
           message = `You caught another ${monsterData.name}! EXP increased.`;
         }
       } else {
-         message = `You caught a ${monsterData.name}, but it's already Max Level (Lv.5).`;
+        message = `You caught a ${monsterData.name}, but it's already Max Level (Lv.5).`;
       }
     } else {
       // New monster
@@ -174,6 +192,17 @@ export class MockMonsterService implements IMonsterService {
         exp: 0
       });
       message = `You discovered and caught a new monster: ${monsterData.name}!`;
+      
+      // Connect to backend: call spawn API to simulate registering
+      try {
+         const spawnRes = await fetch(`http://localhost:8080/api/monsters/spawn`, {
+            method: "POST"
+         });
+         const spawnData = await spawnRes.json();
+         console.log("Backend Spawn Response:", spawnData);
+      } catch (e) {
+         console.error("Backend connection failed:", e);
+      }
     }
 
     // Update user info
@@ -187,4 +216,4 @@ export class MockMonsterService implements IMonsterService {
   }
 }
 
-export const monsterService: IMonsterService = new MockMonsterService();
+export const monsterService: IMonsterService = new BackendMonsterService();

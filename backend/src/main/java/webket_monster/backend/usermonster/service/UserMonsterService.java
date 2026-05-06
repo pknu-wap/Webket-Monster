@@ -57,7 +57,8 @@ public class UserMonsterService {
                 userMonster.getLevel(),
                 userMonster.getExp(),
                 userMonster.getRequiredExpForNextLevel(),
-                evolutionInfo
+                evolutionInfo,
+                monster.getImageUrl()
         );
     }
 

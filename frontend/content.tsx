@@ -25,7 +25,7 @@ if (PIXI.ParticleBuffer) (PIXI.ParticleBuffer as any).prototype.generateParticle
 import { monsterService, Monster, getEvolvedMonsterData } from "./services/monsterService";
 
 export const config: PlasmoCSConfig = {
-  matches: ["<all_urls>"]
+  matches: ["*://*.pknu.ac.kr/*"]
 };
 
 export default function WebketMonsterOverlay() {
