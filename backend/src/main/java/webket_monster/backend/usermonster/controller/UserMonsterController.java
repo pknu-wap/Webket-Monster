@@ -3,6 +3,7 @@ package webket_monster.backend.usermonster.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 import webket_monster.backend.usermonster.dto.*;
 import webket_monster.backend.usermonster.service.UserMonsterService;
 
@@ -15,6 +16,11 @@ public class UserMonsterController {
     @GetMapping("/user-monsters/{userMonsterId}")
     public ResponseEntity<UserMonsterResponseDto> getUserMonsterInfo(@PathVariable Long userMonsterId) {
         return ResponseEntity.ok(userMonsterService.getUserMonsterInfo(userMonsterId));
+    }
+
+    @GetMapping("/user-monsters/user/{userId}")
+    public ResponseEntity<List<UserMonsterResponseDto>> getUserInventory(@PathVariable Long userId) {
+        return ResponseEntity.ok(userMonsterService.getUserInventory(userId));
     }
 
     @PostMapping("/user-monsters/{userMonsterId}/levelup")

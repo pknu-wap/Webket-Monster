@@ -6,3 +6,6 @@ INSERT INTO monsters (id, name, type, characteristics, base_level, next_evolutio
 
 INSERT INTO monsters (id, name, type, characteristics, base_level, next_evolution_monster_id, evolution_required_level, image_url) VALUES 
 (3, '백경이와 뿌공이', 'Water', '완전체 마스코트', 5, NULL, NULL, 'https://webket-monster-monster-assets.s3.ap-southeast-2.amazonaws.com/pukyong-3.png') ON CONFLICT (id) DO UPDATE SET image_url = EXCLUDED.image_url, name = EXCLUDED.name;
+
+INSERT INTO users (id, email, nickname) VALUES 
+(1, 'test@pknu.ac.kr', 'Tamer') ON CONFLICT (id) DO NOTHING;

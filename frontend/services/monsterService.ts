@@ -123,6 +123,28 @@ export class BackendMonsterService implements IMonsterService {
   }
 
   async getInventory(): Promise<Inventory> {
+    try {
+       const res = await fetch(`${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/user-monsters/user/1`);
+       if (res.ok) {
+         const data = await res.json();
+         // data is List<UserMonsterResponseDto>
+         // map to CaughtMonster[]
+         const caughtMonsters = data.map((item: any) => ({
+            id: item.userMonsterId.toString(),
+            monsterId: item.monsterId.toString(),
+            level: item.level,
+            exp: item.exp
+         }));
+         
+         // Sync local storage for active tracking
+         await storage.set("inventory", { caughtMonsters });
+         return { caughtMonsters };
+       }
+    } catch (e) {
+       console.error("Failed to fetch inventory from backend:", e);
+    }
+    
+    // Fallback to local storage if backend fails
     const inventory = await storage.get<Inventory>("inventory");
     if (!inventory) {
       const defaultInventory = { caughtMonsters: [] };
