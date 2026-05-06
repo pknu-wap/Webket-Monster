@@ -27,6 +27,8 @@ public class MonsterService {
                 monster.getBaseLevel(),
                 monster.getImageUrl()
         );
+    }
+
     @Transactional(readOnly = true)
     public List<MonsterSpawnResponseDto> getAllMonsters() {
         return monsterRepository.findAll().stream()
