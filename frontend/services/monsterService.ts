@@ -160,7 +160,7 @@ export class BackendMonsterService implements IMonsterService {
           
           // Connect to backend: call level up API
           try {
-             const levelUpRes = await fetch(`http://localhost:8080/api/user-monsters/1/levelup`, {
+             const levelUpRes = await fetch(`${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/user-monsters/1/levelup`, {
                 method: "POST"
              });
              const levelUpData = await levelUpRes.json();
@@ -168,7 +168,7 @@ export class BackendMonsterService implements IMonsterService {
              
              // If level reaches evolution threshold (3 or 5), call evolve API
              if (newLevel === 3 || newLevel === 5) {
-                const evolveRes = await fetch(`http://localhost:8080/api/user-monsters/1/evolve`, {
+                const evolveRes = await fetch(`${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/user-monsters/1/evolve`, {
                    method: "PATCH"
                 });
                 const evolveData = await evolveRes.json();
@@ -195,7 +195,7 @@ export class BackendMonsterService implements IMonsterService {
       
       // Connect to backend: call spawn API to simulate registering
       try {
-         const spawnRes = await fetch(`http://localhost:8080/api/monsters/spawn`, {
+         const spawnRes = await fetch(`${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/monsters/spawn`, {
             method: "POST"
          });
          const spawnData = await spawnRes.json();
