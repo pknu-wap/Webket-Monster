@@ -7,35 +7,67 @@ import webket_monster.backend.monster.domain.Monster;
 import webket_monster.backend.monster.dto.CatchMonsterRequestDto;
 import webket_monster.backend.monster.dto.CatchMonsterResponseDto;
 import webket_monster.backend.monster.repository.MonsterRepository;
+import webket_monster.backend.user.domain.User;
 import webket_monster.backend.usermonster.domain.UserMonster;
 import webket_monster.backend.usermonster.dto.*;
 import webket_monster.backend.usermonster.repository.UserMonsterRepository;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class UserMonsterService {
 
     private final UserMonsterRepository userMonsterRepository;
-    private final MonsterRepository monsterRepository;
+    private final webket_monster.backend.user.repository.UserRepository userRepository;
+    private final webket_monster.backend.monster.repository.MonsterRepository monsterRepository;
 
     @Transactional
     public CatchMonsterResponseDto catchMonster(Long userId, CatchMonsterRequestDto request) {
         Monster monster = monsterRepository.findById(request.getMonsterId())
                 .orElseThrow(() -> new IllegalArgumentException("몬스터를 찾을 수 없습니다."));
 
-        // TODO: UserRepository 연결 후 실제 User 조회 필요
-        // TODO: 이미 보유한 몬스터면 경험치 추가, 없으면 UserMonster 새로 저장
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        java.util.Optional<UserMonster> existing = userMonsterRepository.findByUserId(userId).stream()
+                .filter(um -> um.getMonster().getId().equals(monster.getId()))
+                .findFirst();
 
-        return new CatchMonsterResponseDto(
-                "포획 성공!",
-                false,
-                50,
-                new CatchMonsterResponseDto.CurrentMonsterDto(
-                        monster.getId(),
-                        monster.getBaseLevel(),
-                        0
-                )
-        );
+        if (existing.isPresent()) {
+            UserMonster um = existing.get();
+            um.addExp(5);
+            return new CatchMonsterResponseDto(
+                    "포획 성공! 경험치가 올랐습니다.",
+                    false,
+                    um.getExp(),
+                    new CatchMonsterResponseDto.CurrentMonsterDto(
+                            monster.getId(),
+                            um.getLevel(),
+                            um.getExp()
+                    )
+            );
+        } else {
+            UserMonster newMonster = UserMonster.builder()
+                    .user(user)
+                    .monster(monster)
+                    .level(1)
+                    .exp(0)
+                    .isActive(false)
+                    .build();
+            userMonsterRepository.save(newMonster);
+
+            return new CatchMonsterResponseDto(
+                    "새로운 몬스터를 포획했습니다!",
+                    false,
+                    50,
+                    new CatchMonsterResponseDto.CurrentMonsterDto(
+                            monster.getId(),
+                            1,
+                            0
+                    )
+            );
+        }
     }
 
     @Transactional(readOnly = true)
@@ -60,6 +92,29 @@ public class UserMonsterService {
                 evolutionInfo,
                 monster.getImageUrl()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserMonsterResponseDto> getUserInventory(Long userId) {
+        return userMonsterRepository.findByUserId(userId).stream()
+                .map(um -> {
+                    Monster m = um.getMonster();
+                    String evoInfo = m.getNextEvolutionMonsterId() == null
+                            ? "최종 진화 몬스터입니다."
+                            : "레벨 " + m.getEvolutionRequiredLevel() + "에 진화 가능합니다.";
+                    return new UserMonsterResponseDto(
+                            um.getId(),
+                            m.getId(),
+                            m.getName(),
+                            m.getCharacteristics(),
+                            um.getLevel(),
+                            um.getExp(),
+                            um.getRequiredExpForNextLevel(),
+                            evoInfo,
+                            m.getImageUrl()
+                    );
+                })
+                .collect(Collectors.toList());
     }
 
     @Transactional

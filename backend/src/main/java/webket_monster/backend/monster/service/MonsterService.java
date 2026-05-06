@@ -6,6 +6,8 @@ import org.springframework.transaction.annotation.Transactional;
 import webket_monster.backend.monster.domain.Monster;
 import webket_monster.backend.monster.dto.MonsterSpawnResponseDto;
 import webket_monster.backend.monster.repository.MonsterRepository;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,5 +27,15 @@ public class MonsterService {
                 monster.getBaseLevel(),
                 monster.getImageUrl()
         );
+    @Transactional(readOnly = true)
+    public List<MonsterSpawnResponseDto> getAllMonsters() {
+        return monsterRepository.findAll().stream()
+                .map(m -> new MonsterSpawnResponseDto(
+                        m.getId(),
+                        m.getName(),
+                        m.getType(),
+                        m.getBaseLevel(),
+                        m.getImageUrl()
+                )).collect(Collectors.toList());
     }
 }

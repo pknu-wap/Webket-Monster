@@ -3,6 +3,7 @@ package webket_monster.backend.monster.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 import webket_monster.backend.monster.dto.CatchMonsterRequestDto;
 import webket_monster.backend.monster.dto.CatchMonsterResponseDto;
 import webket_monster.backend.monster.dto.MonsterSpawnResponseDto;
@@ -16,6 +17,12 @@ public class MonsterController {
 
     private final MonsterService monsterService;
     private final UserMonsterService userMonsterService;
+
+    // get all
+    @GetMapping
+    public ResponseEntity<List<MonsterSpawnResponseDto>> getAllMonsters() {
+        return ResponseEntity.ok(monsterService.getAllMonsters());
+    }
 
     // spawn
     @PostMapping("/spawn")
