@@ -71,12 +71,34 @@
 
             let isCaught = false;
 
-            // Use the locally generated image or a fallback
-            const imageUrl = "assets/pukyong_mon.png";
+            // Use a spritesheet so the monster's frame changes while the existing movement runs.
+            const imageUrl = "assets/moving_mon.png";
 
             try {
                 const texture = await PIXI.Assets.load(imageUrl);
-                const sprite = new PIXI.Sprite(texture);
+                const spriteSheetColumns = 4;
+                const spriteSheetRows = 4;
+                const frameWidth = texture.width / spriteSheetColumns;
+                const frameHeight = texture.height / spriteSheetRows;
+                const movingFrames = [
+                    [0, 0],
+                    [1, 0],
+                    [2, 0],
+                    [3, 0],
+                    [0, 1],
+                    [1, 1],
+                    [2, 1],
+                    [3, 1],
+                ].map(([column, row]) => new PIXI.Texture({
+                    source: texture.source,
+                    frame: new PIXI.Rectangle(
+                        column * frameWidth,
+                        row * frameHeight,
+                        frameWidth,
+                        frameHeight,
+                    ),
+                }));
+                const sprite = new PIXI.Sprite(movingFrames[0]);
                 
                 sprite.width = 100;
                 sprite.height = 100;
@@ -88,9 +110,13 @@
                 sprite.cursor = 'pointer';
                 
                 let elapsed = 0;
+                let animationElapsed = 0;
                 app.ticker.add((ticker) => {
                     if (isCaught) return;
                     elapsed += ticker.deltaTime;
+                    animationElapsed += ticker.deltaTime;
+                    const frameIndex = Math.floor(animationElapsed / 8) % movingFrames.length;
+                    sprite.texture = movingFrames[frameIndex];
                     sprite.y = (app.screen.height / 2) + Math.sin(elapsed / 10.0) * 10;
 
                     const dx = targetX - currentX;

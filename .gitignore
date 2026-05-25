@@ -35,3 +35,6 @@ yarn-error.log*
 # Logs
 logs/
 *.log
+
+# Local Gradle cache
+.gradle-home/
