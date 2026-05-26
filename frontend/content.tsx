@@ -2,6 +2,7 @@ import type { PlasmoCSConfig } from "plasmo";
 import { useEffect, useRef, useState } from "react";
 import { Storage } from "@plasmohq/storage";
 import * as PIXI from "pixi.js";
+import movingWhaleMonUrl from "data-base64:~assets/moving_whale_mon.png";
 
 // Force Parcel to statically bundle PixiJS environments/renderers to prevent dynamic import errors ('blpiu')
 import "pixi.js/lib/environment-browser/browserAll.mjs";
@@ -130,8 +131,30 @@ export default function WebketMonsterOverlay() {
       containerRef.current.appendChild(app.canvas);
 
       try {
-        const texture = await PIXI.Assets.load(spawnedMonster.imageUrl);
-        const sprite = new PIXI.Sprite(texture);
+        const texture = await PIXI.Assets.load(movingWhaleMonUrl);
+        const spriteSheetColumns = 4;
+        const spriteSheetRows = 4;
+        const frameWidth = texture.width / spriteSheetColumns;
+        const frameHeight = texture.height / spriteSheetRows;
+        const movingFrames = [
+          [0, 0],
+          [1, 0],
+          [2, 0],
+          [3, 0],
+          [0, 1],
+          [1, 1],
+          [2, 1],
+          [3, 1],
+        ].map(([column, row]) => new PIXI.Texture({
+          source: texture.source,
+          frame: new PIXI.Rectangle(
+            column * frameWidth,
+            row * frameHeight,
+            frameWidth,
+            frameHeight
+          )
+        }));
+        const sprite = new PIXI.Sprite(movingFrames[0]);
         
         sprite.width = 100;
         sprite.height = 100;
@@ -144,9 +167,13 @@ export default function WebketMonsterOverlay() {
         
         // Internal floating animation
         let elapsed = 0;
+        let animationElapsed = 0;
         app.ticker.add((ticker) => {
           if (isCaught) return;
           elapsed += ticker.deltaTime;
+          animationElapsed += ticker.deltaTime;
+          const frameIndex = Math.floor(animationElapsed / 8) % movingFrames.length;
+          sprite.texture = movingFrames[frameIndex];
           sprite.y = (app!.screen.height / 2) + Math.sin(elapsed / 10.0) * 10;
 
           // Move the DOM element towards the target
