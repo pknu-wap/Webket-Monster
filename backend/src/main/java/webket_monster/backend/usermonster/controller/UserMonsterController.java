@@ -57,4 +57,13 @@ public class UserMonsterController {
         userMonsterService.changeActiveMonster(dummyUserId, request);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/user-monsters/{userMonsterId}/feed")
+    public ResponseEntity<MonsterFeedResponseDto> feedMonster(
+            @PathVariable Long userMonsterId
+    ) {
+        return ResponseEntity.ok(
+                userMonsterService.feedMonster(userMonsterId)
+        );
+    }
 }
