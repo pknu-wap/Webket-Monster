@@ -7,7 +7,9 @@ import webket_monster.backend.monster.domain.Monster;
 import webket_monster.backend.monster.dto.CatchMonsterRequestDto;
 import webket_monster.backend.monster.dto.CatchMonsterResponseDto;
 import webket_monster.backend.monster.repository.MonsterRepository;
+import java.time.LocalDateTime;
 import webket_monster.backend.user.domain.User;
+import webket_monster.backend.user.repository.UserRepository;
 import webket_monster.backend.usermonster.domain.UserMonster;
 import webket_monster.backend.usermonster.dto.*;
 import webket_monster.backend.usermonster.repository.UserMonsterRepository;
@@ -19,8 +21,8 @@ import java.util.stream.Collectors;
 public class UserMonsterService {
 
     private final UserMonsterRepository userMonsterRepository;
-    private final webket_monster.backend.user.repository.UserRepository userRepository;
-    private final webket_monster.backend.monster.repository.MonsterRepository monsterRepository;
+    private final UserRepository userRepository;
+    private final MonsterRepository monsterRepository;
 
     @Transactional
     public CatchMonsterResponseDto catchMonster(Long userId, CatchMonsterRequestDto request) {
@@ -54,6 +56,7 @@ public class UserMonsterService {
                     .level(1)
                     .exp(0)
                     .isActive(false)
+                    .hungryAt(LocalDateTime.now().plusHours(3))
                     .build();
             userMonsterRepository.save(newMonster);
 
@@ -196,6 +199,24 @@ public class UserMonsterService {
         return new MonsterEffectResponseDto(
                 userMonster.getId(),
                 "몬스터 이펙트가 발동되었습니다."
+        );
+    }
+
+    @Transactional
+    public MonsterFeedResponseDto feedMonster(Long userMonsterId) {
+
+        UserMonster userMonster = userMonsterRepository.findById(userMonsterId)
+                .orElseThrow(() -> new IllegalArgumentException("보유한 몬스터를 찾을 수 없습니다."));
+
+        LocalDateTime nextHungryAt =
+                LocalDateTime.now().plusHours(3);
+
+        userMonster.updateHungryAt(nextHungryAt);
+
+        return new MonsterFeedResponseDto(
+                userMonster.getId(),
+                nextHungryAt,
+                "먹이주기가 완료되었습니다."
         );
     }
 }
