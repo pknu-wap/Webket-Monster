@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
+import java.time.LocalDateTime;
 import lombok.NoArgsConstructor;
 import webket_monster.backend.monster.domain.Monster;
 import webket_monster.backend.user.domain.User;
@@ -35,13 +36,17 @@ public class UserMonster {
     @Column(nullable = false)
     private Boolean isActive;
 
+    @Column(name = "hungry_at")
+    private LocalDateTime hungryAt;
+
     @Builder
-    public UserMonster(User user, Monster monster, Integer level, Integer exp, Boolean isActive) {
+    public UserMonster(User user, Monster monster, Integer level, Integer exp, Boolean isActive, LocalDateTime hungryAt) {
         this.user = user;
         this.monster = monster;
         this.level = level;
         this.exp = exp;
         this.isActive = isActive;
+        this.hungryAt = hungryAt;
     }
 
     public int getRequiredExpForNextLevel() {
@@ -71,5 +76,9 @@ public class UserMonster {
 
     public void changeActive(boolean isActive) {
         this.isActive = isActive;
+    }
+
+    public void updateHungryAt(LocalDateTime hungryAt) {
+        this.hungryAt = hungryAt;
     }
 }
