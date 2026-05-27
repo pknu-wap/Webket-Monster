@@ -13,8 +13,6 @@ import webket_monster.backend.user.repository.UserRepository;
 import webket_monster.backend.usermonster.domain.UserMonster;
 import webket_monster.backend.usermonster.dto.*;
 import webket_monster.backend.usermonster.repository.UserMonsterRepository;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -97,28 +95,6 @@ public class UserMonsterService {
         );
     }
 
-    @Transactional(readOnly = true)
-    public List<UserMonsterResponseDto> getUserInventory(Long userId) {
-        return userMonsterRepository.findByUserId(userId).stream()
-                .map(um -> {
-                    Monster m = um.getMonster();
-                    String evoInfo = m.getNextEvolutionMonsterId() == null
-                            ? "최종 진화 몬스터입니다."
-                            : "레벨 " + m.getEvolutionRequiredLevel() + "에 진화 가능합니다.";
-                    return new UserMonsterResponseDto(
-                            um.getId(),
-                            m.getId(),
-                            m.getName(),
-                            m.getCharacteristics(),
-                            um.getLevel(),
-                            um.getExp(),
-                            um.getRequiredExpForNextLevel(),
-                            evoInfo,
-                            m.getImageUrl()
-                    );
-                })
-                .collect(Collectors.toList());
-    }
 
     @Transactional
     public LevelUpResponseDto levelUpMonster(Long userMonsterId) {
