@@ -1,5 +1,6 @@
 package webket_monster.backend.item.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +23,7 @@ public class ItemService {
     /** 아이템 얻기 */
     public void acquireItem(Long userId, AcquireItemRequest request) {
         Item item = itemRepository.findById(request.getItemId())
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new EntityNotFoundException(
                         "존재하지 않는 아이템입니다. id=" + request.getItemId()));
 
         int nextPosition = (int) userItemRepository.countByUserId(userId);
@@ -52,12 +53,13 @@ public class ItemService {
 
     private UserItem getOwnedUserItem(Long userId, Long userItemId) {
         UserItem userItem = userItemRepository.findById(userItemId)
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new EntityNotFoundException(
                         "존재하지 않는 인벤토리 아이템입니다. id=" + userItemId));
 
         if (!userItem.getUserId().equals(userId)) {
-            throw new RuntimeException("본인의 아이템만 접근할 수 있습니다.");
+            throw new IllegalStateException("본인의 아이템만 접근할 수 있습니다.");
         }
+
         return userItem;
     }
 }
