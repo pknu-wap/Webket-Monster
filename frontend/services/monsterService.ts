@@ -26,6 +26,7 @@ export interface CaughtMonster {
 }
 
 export interface UserInfo {
+  userId?: number;
   nickname: string;
   totalCaught: number;
   activeMonsterId?: string | null;
@@ -97,11 +98,30 @@ export interface IMonsterService {
 
 export class BackendMonsterService implements IMonsterService {
   async getUserInfo(): Promise<UserInfo> {
-    const userInfo = await storage.get<UserInfo>("userInfo");
+    let userInfo = await storage.get<UserInfo>("userInfo");
     if (!userInfo) {
-      const defaultInfo = { nickname: "Tamer", totalCaught: 0, activeMonsterId: null };
-      await storage.set("userInfo", defaultInfo);
-      return defaultInfo;
+      userInfo = { nickname: "Tamer", totalCaught: 0, activeMonsterId: null };
+    }
+
+    if (!userInfo.userId) {
+      try {
+        const res = await fetch(`${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/auth/anonymous`, {
+          method: "POST"
+        });
+        if (res.ok) {
+          const data = await res.json();
+          userInfo.userId = data.user.id;
+          if (data.user.id) {
+            userInfo.nickname = "Trainer_" + (data.user.id % 10000);
+          }
+        } else {
+          userInfo.userId = 1;
+        }
+      } catch (e) {
+        console.error("Failed to register anonymous user with backend:", e);
+        userInfo.userId = 1;
+      }
+      await storage.set("userInfo", userInfo);
     }
     return userInfo;
   }
@@ -142,7 +162,13 @@ export class BackendMonsterService implements IMonsterService {
 
     // Attempt to load from backend
     try {
-       const res = await fetch(`${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/user-monsters/user/1`);
+       const userInfo = await this.getUserInfo();
+       const userId = userInfo.userId || 1;
+       const res = await fetch(`${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/user-monsters/user/${userId}`, {
+          headers: {
+             "X-User-Id": userId.toString()
+          }
+       });
        if (res.ok) {
          const data = await res.json();
          caughtMonsters = data.map((item: any) => ({
@@ -207,8 +233,12 @@ export class BackendMonsterService implements IMonsterService {
             
             // Connect to backend: call level up API
             try {
-               await fetch(`${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/user-monsters/1/levelup`, {
-                  method: "POST"
+               const userId = userInfo.userId || 1;
+               await fetch(`${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/user-monsters/${existingMonster.id}/levelup`, {
+                  method: "POST",
+                  headers: {
+                     "X-User-Id": userId.toString()
+                  }
                });
             } catch (e) {
                console.error("Backend connection failed:", e);
@@ -239,10 +269,17 @@ export class BackendMonsterService implements IMonsterService {
       });
       message = `도감 등록 완료! 새로운 몬스터 ${monsterData.name}를 포획했습니다!`;
       
-      // Connect to backend: call spawn API
+      // Connect to backend: call catch API
       try {
-         await fetch(`${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/monsters/spawn`, {
-            method: "POST"
+         const userId = userInfo.userId || 1;
+         const parsedMonsterId = parseInt(monsterId.replace(/[^0-9]/g, "")) || 1;
+         await fetch(`${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/monsters/catch`, {
+            method: "POST",
+            headers: {
+               "Content-Type": "application/json",
+               "X-User-Id": userId.toString()
+            },
+            body: JSON.stringify({ monsterId: parsedMonsterId })
          });
       } catch (e) {
          console.error("Backend connection failed:", e);
@@ -306,8 +343,13 @@ export class BackendMonsterService implements IMonsterService {
         
         // Try to call backend level up API
         try {
-           await fetch(`${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/user-monsters/1/levelup`, {
-              method: "POST"
+           const userInfo = await this.getUserInfo();
+           const userId = userInfo.userId || 1;
+           await fetch(`${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/user-monsters/${cm.id}/levelup`, {
+              method: "POST",
+              headers: {
+                 "X-User-Id": userId.toString()
+              }
            });
         } catch (e) {
            console.error("Backend levelup connection failed:", e);
@@ -379,8 +421,13 @@ export class BackendMonsterService implements IMonsterService {
 
       // Call backend evolve API (best effort)
       try {
-         await fetch(`${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/user-monsters/1/evolve`, {
-            method: "PATCH"
+         const userInfo = await this.getUserInfo();
+         const userId = userInfo.userId || 1;
+         await fetch(`${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/user-monsters/${cm.id}/evolve`, {
+            method: "PATCH",
+            headers: {
+               "X-User-Id": userId.toString()
+            }
          });
       } catch (e) {
          console.error("Backend evolve connection failed:", e);
@@ -414,8 +461,13 @@ export class BackendMonsterService implements IMonsterService {
 
       // Call backend evolve API (best effort)
       try {
-         await fetch(`${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/user-monsters/1/evolve`, {
-            method: "PATCH"
+         const userInfo = await this.getUserInfo();
+         const userId = userInfo.userId || 1;
+         await fetch(`${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/user-monsters/${cm.id}/evolve`, {
+            method: "PATCH",
+            headers: {
+               "X-User-Id": userId.toString()
+            }
          });
       } catch (e) {
          console.error("Backend evolve connection failed:", e);
