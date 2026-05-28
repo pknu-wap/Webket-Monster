@@ -22,4 +22,10 @@ public class AuthController {
         LoginResponseDto response = authService.login(request);
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/anonymous")
+    public ResponseEntity<LoginResponseDto> registerAnonymous() {
+        LoginResponseDto response = authService.registerAnonymous();
+        return ResponseEntity.ok(response);
+    }
 }

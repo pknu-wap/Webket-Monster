@@ -33,12 +33,13 @@ public class MonsterController {
     // catch
     @PostMapping("/catch")
     public ResponseEntity<CatchMonsterResponseDto> catchMonster(
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
             @RequestBody CatchMonsterRequestDto request) {
 
-        Long dummyUserId = 1L;
+        Long targetUserId = (userId != null) ? userId : 1L;
 
         return ResponseEntity.ok(
-                userMonsterService.catchMonster(dummyUserId, request)
+                userMonsterService.catchMonster(targetUserId, request)
         );
     }
 }

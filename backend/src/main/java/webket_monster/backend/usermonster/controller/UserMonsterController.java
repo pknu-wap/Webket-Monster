@@ -46,9 +46,11 @@ public class UserMonsterController {
     }
 
     @PatchMapping("/users/me/active-monster")
-    public ResponseEntity<Void> changeActiveMonster(@RequestBody ActiveMonsterRequestDto request) {
-        Long dummyUserId = 1L;
-        userMonsterService.changeActiveMonster(dummyUserId, request);
+    public ResponseEntity<Void> changeActiveMonster(
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @RequestBody ActiveMonsterRequestDto request) {
+        Long targetUserId = (userId != null) ? userId : 1L;
+        userMonsterService.changeActiveMonster(targetUserId, request);
         return ResponseEntity.ok().build();
     }
 
