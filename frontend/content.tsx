@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Storage } from "@plasmohq/storage";
 import * as PIXI from "pixi.js";
 import movingWhaleMonUrl from "data-base64:~assets/moving_whale_mon.png";
+import catchEffectUrl from "url:~assets/effect1.mp4";
 
 // Force Parcel to statically bundle PixiJS environments/renderers to prevent dynamic import errors ('blpiu')
 import "pixi.js/lib/environment-browser/browserAll.mjs";
@@ -37,6 +38,7 @@ export default function WebketMonsterOverlay() {
   const [pos, setPos] = useState({ x: -200, y: -200 }); // Start off-screen
   const [activeMonsterInfo, setActiveMonsterInfo] = useState<{ id: string, name: string, imageUrl: string } | null>(null);
   const [activeMonsterLevel, setActiveMonsterLevel] = useState<number>(0);
+  const [showCatchEffect, setShowCatchEffect] = useState(false);
 
   useEffect(() => {
     const storage = new Storage();
@@ -216,6 +218,7 @@ export default function WebketMonsterOverlay() {
           });
 
           const result = await monsterService.catchMonster(spawnedMonster.id);
+          setShowCatchEffect(true);
           setCatchMessage(result.message);
           
           setTimeout(() => {
@@ -278,10 +281,39 @@ export default function WebketMonsterOverlay() {
     };
   }, [activeMonsterInfo]);
 
-  if (!spawnedMonster && !activeMonsterInfo) return null;
+  if (!spawnedMonster && !activeMonsterInfo && !showCatchEffect) return null;
 
   return (
     <>
+      {showCatchEffect && (
+        <div
+          key="catch-effect-overlay"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 2147483647,
+            background: "transparent",
+            pointerEvents: "all",
+            overflow: "hidden"
+          }}
+        >
+          <video
+            src={catchEffectUrl}
+            autoPlay
+            muted
+            playsInline
+            onEnded={() => setShowCatchEffect(false)}
+            onError={() => setShowCatchEffect(false)}
+            style={{
+              width: "100vw",
+              height: "100vh",
+              objectFit: "cover",
+              display: "block"
+            }}
+          />
+        </div>
+      )}
+
       {spawnedMonster && (
         <div
           key="spawned-monster-container"

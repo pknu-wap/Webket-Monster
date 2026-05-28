@@ -38,9 +38,28 @@
             display: none;
             font-family: sans-serif;
         }
+        #catch-effect-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2147483647;
+            display: none;
+            background: transparent;
+            pointer-events: all;
+            overflow: hidden;
+        }
+        #catch-effect-overlay video {
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            display: block;
+        }
     </style>
 </head>
 <body>
+    <div id="catch-effect-overlay">
+        <video id="catch-effect-video" src="assets/effect1.mp4" muted playsinline></video>
+    </div>
+
     <div id="monster-container">
         <div id="catch-message"></div>
         <div id="pixi-canvas"></div>
@@ -51,6 +70,8 @@
             const container = document.getElementById('monster-container');
             const pixiCanvas = document.getElementById('pixi-canvas');
             const catchMessage = document.getElementById('catch-message');
+            const catchEffectOverlay = document.getElementById('catch-effect-overlay');
+            const catchEffectVideo = document.getElementById('catch-effect-video');
             
             // Initial position
             let currentX = Math.max(10, Math.floor(Math.random() * (window.innerWidth - 150)));
@@ -145,6 +166,13 @@
                     if (isCaught) return;
                     isCaught = true;
                     clearInterval(wanderTimer);
+
+                    catchEffectOverlay.style.display = "block";
+                    catchEffectVideo.currentTime = 0;
+                    catchEffectVideo.play().catch((err) => {
+                        console.error("Failed to play catch effect:", err);
+                        catchEffectOverlay.style.display = "none";
+                    });
                     
                     app.ticker.add((ticker) => {
                         sprite.rotation += 0.5 * ticker.deltaTime;
@@ -162,6 +190,15 @@
                     setTimeout(() => {
                         container.style.display = "none";
                     }, 3000);
+                });
+
+                catchEffectVideo.addEventListener("ended", () => {
+                    catchEffectOverlay.style.display = "none";
+                });
+
+                catchEffectVideo.addEventListener("error", () => {
+                    console.error("Failed to load catch effect video.");
+                    catchEffectOverlay.style.display = "none";
                 });
 
                 app.stage.addChild(sprite);
