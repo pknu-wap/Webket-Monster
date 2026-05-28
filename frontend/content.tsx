@@ -23,6 +23,7 @@ import { generateParticleUpdatePolyfill } from "pixi.js/lib/unsafe-eval/particle
 if (PIXI.ParticleBuffer) (PIXI.ParticleBuffer as any).prototype.generateParticleUpdate = generateParticleUpdatePolyfill;
 
 import { monsterService, Monster, getEvolvedMonsterData } from "./services/monsterService";
+import { questService } from "./services/questService";
 
 export const config: PlasmoCSConfig = {
   matches: ["*://*.pknu.ac.kr/*"]
@@ -49,7 +50,7 @@ export default function WebketMonsterOverlay() {
           const monsters = await monsterService.getMonsterList();
           const mData = monsters.find(m => m.id === activeCm.monsterId);
           if (mData) {
-            const evolvedInfo = getEvolvedMonsterData(mData, activeCm.level);
+            const evolvedInfo = getEvolvedMonsterData(mData, activeCm.evolutionStage || 1);
             setActiveMonsterInfo(prev => 
               (prev?.id === mData.id && prev?.imageUrl === evolvedInfo.imageUrl) 
                 ? prev 
@@ -77,6 +78,13 @@ export default function WebketMonsterOverlay() {
         loadActiveMonster();
       }
     });
+  }, []);
+
+  useEffect(() => {
+    // Record page visit quest progress when on PKNU site
+    if (window.location.hostname.includes("pknu.ac.kr")) {
+      questService.incrementProgress("visit", 1).catch(e => console.error("Quest update error:", e));
+    }
   }, []);
 
   useEffect(() => {
