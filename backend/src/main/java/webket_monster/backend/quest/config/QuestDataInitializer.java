@@ -26,7 +26,7 @@ public class QuestDataInitializer implements CommandLineRunner {
                 QuestType.FEED_COUNT,
                 10,
                 RewardType.EXP_POTION,
-                100
+                1
         ));
 
         questRepository.save(new Quest(
