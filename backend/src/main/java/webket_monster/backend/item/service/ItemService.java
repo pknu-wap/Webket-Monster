@@ -24,53 +24,108 @@ public class ItemService {
 
     /** 아이템 얻기 */
     public void acquireItem(Long userId, AcquireItemRequest request) {
+
         Item item = itemRepository.findById(request.getItemId())
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "존재하지 않는 아이템입니다. id=" + request.getItemId()));
+                        "존재하지 않는 아이템입니다. id=" + request.getItemId()
+                ));
 
         User user = getUser(userId);
 
         switch (item.getEffectType()) {
+
             case EXP_BOOST -> user.addExpPotion(1);
-            default -> user.addEvolutionStone(1);
+
+            default -> throw new IllegalStateException(
+                    "획득할 수 없는 아이템 타입입니다."
+            );
         }
     }
 
     /** 아이템 사용하기 */
-    public UseItemResponse useItem(Long userId, Long itemId, Long userMonsterId) {
+    public UseItemResponse useItem(
+            Long userId,
+            Long itemId,
+            Long userMonsterId
+    ) {
+
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "존재하지 않는 아이템입니다. id=" + itemId));
+                        "존재하지 않는 아이템입니다. id=" + itemId
+                ));
 
         User user = getUser(userId);
 
         switch (item.getEffectType()) {
+
             case EXP_BOOST -> {
+
                 if (userMonsterId == null) {
-                    throw new IllegalArgumentException("경험치 물약 사용 시 userMonsterId가 필요합니다.");
+                    throw new IllegalArgumentException(
+                            "경험치 물약 사용 시 userMonsterId가 필요합니다."
+                    );
                 }
 
-                UserMonster userMonster = userMonsterRepository.findById(userMonsterId)
-                        .orElseThrow(() -> new EntityNotFoundException(
-                                "보유한 몬스터를 찾을 수 없습니다. id=" + userMonsterId));
+                UserMonster userMonster = userMonsterRepository
+                        .findById(userMonsterId)
+                        .orElseThrow(() ->
+                                new EntityNotFoundException(
+                                        "보유한 몬스터를 찾을 수 없습니다. id="
+                                                + userMonsterId
+                                )
+                        );
 
                 if (!userMonster.getUser().getId().equals(userId)) {
-                    throw new IllegalStateException("본인의 몬스터에게만 아이템을 사용할 수 있습니다.");
+                    throw new IllegalStateException(
+                            "본인의 몬스터에게만 아이템을 사용할 수 있습니다."
+                    );
                 }
 
                 user.useExpPotion();
                 userMonster.addExp(item.getItemValue());
             }
 
-            default -> throw new IllegalStateException("진화의 돌은 진화 API에서만 사용 가능합니다.");
+            default -> throw new IllegalStateException(
+                    "사용할 수 없는 아이템 타입입니다."
+            );
         }
 
         return UseItemResponse.from(item);
     }
 
+    /** 퀘스트 보상 지급 */
+    public void addQuestReward(
+            Long userId,
+            String rewardType,
+            int amount
+    ) {
+
+        User user = getUser(userId);
+
+        switch (rewardType) {
+
+            case "EXP_POTION" ->
+                    user.addExpPotion(amount);
+
+            case "EVOLUTION_STONE" ->
+                    user.addEvolutionStone(amount);
+
+            default ->
+                    throw new IllegalArgumentException(
+                            "지원하지 않는 보상 타입입니다: "
+                                    + rewardType
+                    );
+        }
+    }
+
     private User getUser(Long userId) {
+
         return userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "존재하지 않는 사용자입니다. id=" + userId));
+                .orElseThrow(() ->
+                        new EntityNotFoundException(
+                                "존재하지 않는 사용자입니다. id="
+                                        + userId
+                        )
+                );
     }
 }
