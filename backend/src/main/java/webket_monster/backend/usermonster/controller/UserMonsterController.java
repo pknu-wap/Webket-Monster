@@ -3,7 +3,6 @@ package webket_monster.backend.usermonster.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
 import webket_monster.backend.usermonster.dto.*;
 import webket_monster.backend.usermonster.service.UserMonsterService;
 
@@ -18,11 +17,6 @@ public class UserMonsterController {
         return ResponseEntity.ok(userMonsterService.getUserMonsterInfo(userMonsterId));
     }
 
-    @GetMapping("/user-monsters/user/{userId}")
-    public ResponseEntity<List<UserMonsterResponseDto>> getUserInventory(@PathVariable Long userId) {
-        return ResponseEntity.ok(userMonsterService.getUserInventory(userId));
-    }
-
     @PostMapping("/user-monsters/{userMonsterId}/levelup")
     public ResponseEntity<LevelUpResponseDto> levelUpMonster(@PathVariable Long userMonsterId) {
         return ResponseEntity.ok(userMonsterService.levelUpMonster(userMonsterId));
@@ -30,8 +24,8 @@ public class UserMonsterController {
 
     @PostMapping("/user-monsters/{userMonsterId}/action")
     public ResponseEntity<MonsterActionResponseDto> triggerMonsterAction(
-            @PathVariable Long userMonsterId) {
-
+            @PathVariable Long userMonsterId
+    ) {
         return ResponseEntity.ok(
                 userMonsterService.triggerMonsterAction(userMonsterId)
         );
@@ -39,8 +33,8 @@ public class UserMonsterController {
 
     @PostMapping("/user-monsters/{userMonsterId}/effect")
     public ResponseEntity<MonsterEffectResponseDto> triggerMonsterEffect(
-            @PathVariable Long userMonsterId) {
-
+            @PathVariable Long userMonsterId
+    ) {
         return ResponseEntity.ok(
                 userMonsterService.triggerMonsterEffect(userMonsterId)
         );

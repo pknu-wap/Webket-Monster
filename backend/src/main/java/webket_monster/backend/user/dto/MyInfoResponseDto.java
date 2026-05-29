@@ -11,25 +11,20 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class MyInfoResponseDto {
+
     private Long id;
     private String nickname;
+
+    private Integer evolutionStoneCount;
+    private Integer expPotionCount;
+
     private List<MonsterDto> monsters;
-    private List<ItemDto> items;
-    
-    @Getter
-    @Setter
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class MonsterDto {
-        private Long id;
-        private String name;
-    }
 
     @Getter
     @Setter
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class ItemDto {
+    public static class MonsterDto {
         private Long id;
         private String name;
     }

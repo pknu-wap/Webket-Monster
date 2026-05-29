@@ -13,8 +13,6 @@ import webket_monster.backend.user.repository.UserRepository;
 import webket_monster.backend.usermonster.domain.UserMonster;
 import webket_monster.backend.usermonster.dto.*;
 import webket_monster.backend.usermonster.repository.UserMonsterRepository;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -97,28 +95,6 @@ public class UserMonsterService {
         );
     }
 
-    @Transactional(readOnly = true)
-    public List<UserMonsterResponseDto> getUserInventory(Long userId) {
-        return userMonsterRepository.findByUserId(userId).stream()
-                .map(um -> {
-                    Monster m = um.getMonster();
-                    String evoInfo = m.getNextEvolutionMonsterId() == null
-                            ? "최종 진화 몬스터입니다."
-                            : "레벨 " + m.getEvolutionRequiredLevel() + "에 진화 가능합니다.";
-                    return new UserMonsterResponseDto(
-                            um.getId(),
-                            m.getId(),
-                            m.getName(),
-                            m.getCharacteristics(),
-                            um.getLevel(),
-                            um.getExp(),
-                            um.getRequiredExpForNextLevel(),
-                            evoInfo,
-                            m.getImageUrl()
-                    );
-                })
-                .collect(Collectors.toList());
-    }
 
     @Transactional
     public LevelUpResponseDto levelUpMonster(Long userMonsterId) {
@@ -151,6 +127,10 @@ public class UserMonsterService {
         Monster nextMonster = monsterRepository.findById(currentMonster.getNextEvolutionMonsterId())
                 .orElseThrow(() -> new IllegalArgumentException("다음 진화 몬스터를 찾을 수 없습니다."));
 
+        int requiredStoneCount = getRequiredEvolutionStoneCount(currentMonster);
+
+        userMonster.getUser().useEvolutionStone(requiredStoneCount);
+
         userMonster.evolve(nextMonster);
 
         return new EvolveResponseDto(
@@ -158,7 +138,7 @@ public class UserMonsterService {
                 currentMonster.getId(),
                 nextMonster.getId(),
                 nextMonster.getName(),
-                "Successfully evolved!"
+                "진화 성공! 진화의 돌 " + requiredStoneCount + "개를 사용했습니다."
         );
     }
 
@@ -218,5 +198,19 @@ public class UserMonsterService {
                 nextHungryAt,
                 "먹이주기가 완료되었습니다."
         );
+    }
+
+    private int getRequiredEvolutionStoneCount(Monster currentMonster) {
+        Integer requiredLevel = currentMonster.getEvolutionRequiredLevel();
+
+        if (requiredLevel == null) {
+            throw new IllegalStateException("진화 필요 레벨 정보가 없습니다.");
+        }
+
+        if (requiredLevel <= 3) {
+            return 1;
+        }
+
+        return 2;
     }
 }
