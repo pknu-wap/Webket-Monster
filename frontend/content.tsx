@@ -35,7 +35,13 @@ export default function WebketMonsterOverlay() {
   const [spawnedMonster, setSpawnedMonster] = useState<Monster | null>(null);
   const [catchMessage, setCatchMessage] = useState<string | null>(null);
   const [pos, setPos] = useState({ x: -200, y: -200 }); // Start off-screen
-  const [activeMonsterInfo, setActiveMonsterInfo] = useState<{ id: string, name: string, imageUrl: string } | null>(null);
+  const [activeMonsterInfo, setActiveMonsterInfo] = useState<{ 
+    id: string; 
+    name: string; 
+    imageUrl: string;
+    spritesheetUrl1?: string;
+    spritesheetUrl2?: string;
+  } | null>(null);
   const [activeMonsterLevel, setActiveMonsterLevel] = useState<number>(0);
 
   useEffect(() => {
@@ -52,9 +58,15 @@ export default function WebketMonsterOverlay() {
           if (mData) {
             const evolvedInfo = getEvolvedMonsterData(mData, activeCm.evolutionStage || 1);
             setActiveMonsterInfo(prev => 
-              (prev?.id === mData.id && prev?.imageUrl === evolvedInfo.imageUrl) 
+              (prev?.id === mData.id && prev?.imageUrl === evolvedInfo.imageUrl && prev?.spritesheetUrl1 === evolvedInfo.spritesheetUrl1) 
                 ? prev 
-                : { id: mData.id, name: evolvedInfo.name, imageUrl: evolvedInfo.imageUrl }
+                : { 
+                    id: mData.id, 
+                    name: evolvedInfo.name, 
+                    imageUrl: evolvedInfo.imageUrl,
+                    spritesheetUrl1: evolvedInfo.spritesheetUrl1,
+                    spritesheetUrl2: evolvedInfo.spritesheetUrl2
+                  }
             );
             setActiveMonsterLevel(activeCm.level);
           } else {
@@ -138,8 +150,30 @@ export default function WebketMonsterOverlay() {
       containerRef.current.appendChild(app.canvas);
 
       try {
-        const texture = await PIXI.Assets.load(spawnedMonster.imageUrl);
-        const sprite = new PIXI.Sprite(texture);
+        const texture = await PIXI.Assets.load(spawnedMonster.spritesheetUrl1 || spawnedMonster.imageUrl);
+        
+        let idleFrames: PIXI.Texture[] = [texture];
+        let walkFrames: PIXI.Texture[] = [texture];
+        let hasSpritesheet = !!spawnedMonster.spritesheetUrl1;
+
+        if (hasSpritesheet) {
+          const spriteSheetColumns = 4;
+          const spriteSheetRows = 4;
+          const frameWidth = texture.width / spriteSheetColumns;
+          const frameHeight = texture.height / spriteSheetRows;
+          
+          idleFrames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
+            source: texture.source,
+            frame: new PIXI.Rectangle(i * frameWidth, 0 * frameHeight, frameWidth, frameHeight)
+          }));
+          
+          walkFrames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
+            source: texture.source,
+            frame: new PIXI.Rectangle(i * frameWidth, 1 * frameHeight, frameWidth, frameHeight)
+          }));
+        }
+
+        const sprite = new PIXI.Sprite(idleFrames[0]);
         
         sprite.width = 100;
         sprite.height = 100;
@@ -150,20 +184,23 @@ export default function WebketMonsterOverlay() {
         sprite.eventMode = 'static';
         sprite.cursor = 'pointer';
         
-        // Internal floating animation
+        // Internal floating and walking animation
         let elapsed = 0;
+        let animationElapsed = 0;
         app.ticker.add((ticker) => {
           if (isCaught) return;
           elapsed += ticker.deltaTime;
-          sprite.y = (app!.screen.height / 2) + Math.sin(elapsed / 10.0) * 10;
+          animationElapsed += ticker.deltaTime;
 
           // Move the DOM element towards the target
           const dx = targetX - currentX;
           const dy = targetY - currentY;
+          let isMoving = false;
           
           if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
             currentX += dx * 0.01 * ticker.deltaTime; // speed
             currentY += dy * 0.01 * ticker.deltaTime;
+            isMoving = true;
             
             // Flip sprite depending on direction
             if (dx > 0) sprite.scale.x = Math.abs(sprite.scale.x) * -1; // Face right
@@ -171,6 +208,14 @@ export default function WebketMonsterOverlay() {
 
             setPos({ x: currentX, y: currentY });
           }
+
+          if (hasSpritesheet) {
+            const currentFrames = isMoving ? walkFrames : idleFrames;
+            const frameIndex = Math.floor(animationElapsed / 8) % currentFrames.length;
+            sprite.texture = currentFrames[frameIndex];
+          }
+
+          sprite.y = (app!.screen.height / 2) + Math.sin(elapsed / 10.0) * 10;
         });
 
         // Pick a new target position every 2-4 seconds
@@ -223,7 +268,9 @@ export default function WebketMonsterOverlay() {
     if (!activeMonsterInfo || !activeContainerRef.current) return;
 
     let app = new PIXI.Application();
-    let elapsed = 0;
+    let isDestroyed = false;
+    const storage = new Storage();
+    let unwatch: (() => void) | null = null;
 
     const initActivePixi = async () => {
       await app.init({
@@ -232,13 +279,69 @@ export default function WebketMonsterOverlay() {
         backgroundAlpha: 0,
       });
       
-      if (!activeContainerRef.current) return;
+      if (isDestroyed || !activeContainerRef.current) return;
       activeContainerRef.current.innerHTML = "";
       activeContainerRef.current.appendChild(app.canvas);
 
       try {
-        const texture = await PIXI.Assets.load(activeMonsterInfo.imageUrl);
-        const sprite = new PIXI.Sprite(texture);
+        // Load Sheet 1
+        const texture1 = await PIXI.Assets.load(activeMonsterInfo.spritesheetUrl1 || activeMonsterInfo.imageUrl);
+        const spriteSheetColumns = 4;
+        const spriteSheetRows = 4;
+        const frameWidth1 = texture1.width / spriteSheetColumns;
+        const frameHeight1 = texture1.height / spriteSheetRows;
+        
+        let idleFrames = [texture1];
+        let walkFrames = [texture1];
+        let happyFrames = [texture1];
+        let hungryFrames = [texture1];
+        let hasSpritesheet = !!activeMonsterInfo.spritesheetUrl1;
+
+        if (hasSpritesheet) {
+          // Parse Sheet 1 rows
+          idleFrames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
+            source: texture1.source,
+            frame: new PIXI.Rectangle(i * frameWidth1, 0 * frameHeight1, frameWidth1, frameHeight1)
+          }));
+          walkFrames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
+            source: texture1.source,
+            frame: new PIXI.Rectangle(i * frameWidth1, 1 * frameHeight1, frameWidth1, frameHeight1)
+          }));
+          happyFrames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
+            source: texture1.source,
+            frame: new PIXI.Rectangle(i * frameWidth1, 2 * frameHeight1, frameWidth1, frameHeight1)
+          }));
+          hungryFrames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
+            source: texture1.source,
+            frame: new PIXI.Rectangle(i * frameWidth1, 3 * frameHeight1, frameWidth1, frameHeight1)
+          }));
+        }
+
+        // Load Sheet 2 (Actions 1 & 2) if stage >= 2 (Level >= 3) and sheet 2 is present
+        let action1Frames = happyFrames;
+        let action2Frames = happyFrames;
+        let hasSheet2 = !!activeMonsterInfo.spritesheetUrl2;
+
+        if (hasSheet2 && activeMonsterLevel >= 3) {
+          try {
+            const texture2 = await PIXI.Assets.load(activeMonsterInfo.spritesheetUrl2!);
+            const frameWidth2 = texture2.width / spriteSheetColumns;
+            const frameHeight2 = texture2.height / spriteSheetRows;
+            
+            action1Frames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
+              source: texture2.source,
+              frame: new PIXI.Rectangle(i * frameWidth2, 0 * frameHeight2, frameWidth2, frameHeight2)
+            }));
+            action2Frames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
+              source: texture2.source,
+              frame: new PIXI.Rectangle(i * frameWidth2, 1 * frameHeight2, frameWidth2, frameHeight2)
+            }));
+          } catch (e) {
+            console.error("Failed to load spritesheet 2:", e);
+          }
+        }
+
+        const sprite = new PIXI.Sprite(idleFrames[0]);
         
         sprite.width = 100;
         sprite.height = 100;
@@ -247,6 +350,88 @@ export default function WebketMonsterOverlay() {
         sprite.y = app.screen.height / 2;
 
         app.stage.addChild(sprite);
+
+        // State machine variables
+        type MonsterState = "idle" | "walk" | "happy" | "hungry" | "action1" | "action2";
+        let currentState: MonsterState = "idle";
+        let elapsed = 0;
+        let animationElapsed = 0;
+        let loopCounter = 0;
+
+        const setAnimationState = (newState: MonsterState) => {
+          if (currentState === newState) return;
+          currentState = newState;
+          animationElapsed = 0;
+          loopCounter = 0;
+        };
+
+        // App animation ticker
+        app.ticker.add((ticker) => {
+          elapsed += ticker.deltaTime;
+          animationElapsed += ticker.deltaTime;
+
+          // Compute frame out of 4
+          const subFrameIndex = Math.floor(animationElapsed / 8) % 4;
+
+          // Loop tracking
+          if (Math.floor(animationElapsed / 8) >= 4) {
+            animationElapsed = 0;
+            loopCounter += 1;
+
+            // Revert temporary states after 3 loops
+            if (currentState === "happy" || currentState === "action1" || currentState === "action2") {
+              if (loopCounter >= 3) {
+                setAnimationState("idle");
+              }
+            }
+          }
+
+          if (hasSpritesheet) {
+            let currentFrames = idleFrames;
+            if (currentState === "walk") currentFrames = walkFrames;
+            else if (currentState === "happy") currentFrames = happyFrames;
+            else if (currentState === "hungry") currentFrames = hungryFrames;
+            else if (currentState === "action1") currentFrames = action1Frames;
+            else if (currentState === "action2") currentFrames = action2Frames;
+
+            const frame = currentFrames[subFrameIndex] || currentFrames[0];
+            sprite.texture = frame;
+          }
+
+          // Floating animation
+          sprite.y = (app.screen.height / 2) + Math.sin(elapsed / 10.0) * 10;
+        });
+
+        // Register storage watcher to trigger states
+        const handleTrigger = (trigger: string) => {
+          if (trigger === "hungry") {
+            setAnimationState("hungry");
+          } else if (trigger === "feed") {
+            if (currentState === "hungry") {
+              setAnimationState("happy");
+            } else {
+              setAnimationState("happy");
+            }
+          } else if (trigger === "action1") {
+            if (activeMonsterLevel >= 3) {
+              setAnimationState("action1");
+            }
+          } else if (trigger === "action2") {
+            if (activeMonsterLevel >= 3) {
+              setAnimationState("action2");
+            }
+          }
+        };
+
+        unwatch = storage.watch({
+          "activeMonsterTrigger": (change) => {
+            if (change.newValue) {
+              handleTrigger(change.newValue);
+              storage.set("activeMonsterTrigger", null);
+            }
+          }
+        });
+
       } catch (err) {
         console.error("Failed to load active monster texture:", err);
       }
@@ -255,9 +440,11 @@ export default function WebketMonsterOverlay() {
     initActivePixi();
 
     return () => {
+      isDestroyed = true;
+      if (unwatch) unwatch();
       if (app) app.destroy(true);
     };
-  }, [activeMonsterInfo]);
+  }, [activeMonsterInfo, activeMonsterLevel]);
 
   if (!spawnedMonster && !activeMonsterInfo) return null;
 

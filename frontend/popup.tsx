@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Storage } from "@plasmohq/storage";
 import { monsterService, UserInfo, Inventory, Monster, getEvolvedMonsterData } from "./services/monsterService";
 import { questService, Quest } from "./services/questService";
 
@@ -235,6 +236,119 @@ export default function IndexPopup() {
                 </div>
               )}
             </div>
+
+            {userInfo.activeMonsterId && (() => {
+              const activeCm = inventory.caughtMonsters.find(cm => cm.id === userInfo.activeMonsterId);
+              if (!activeCm) return null;
+              const hasActions = activeCm.level >= 3; // stage 2 & 3 have actions
+              
+              const triggerAnimation = async (type: "hungry" | "feed" | "action1" | "action2") => {
+                const storage = new Storage();
+                await storage.set("activeMonsterTrigger", type);
+                
+                let triggerMsg = "";
+                if (type === "hungry") triggerMsg = "drooling... 몬스터가 배고파합니다! 🥩";
+                else if (type === "feed") triggerMsg = "얌냠! 맛있게 먹고 행복해합니다! 🍎✨";
+                else if (type === "action1") triggerMsg = "⚡ 액션 1 기술 시전!";
+                else if (type === "action2") triggerMsg = "🔥 액션 2 필살기 시전!";
+
+                setMessage(triggerMsg);
+                setTimeout(() => setMessage(null), 3000);
+              };
+
+              return (
+                <div style={{
+                  background: "#251d38",
+                  padding: "10px 12px",
+                  borderRadius: "10px",
+                  border: "2px solid #4a3b69",
+                  marginBottom: "20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px",
+                  animation: "fadeIn 0.3s ease"
+                }}>
+                  <div style={{ fontSize: "12px", fontWeight: "900", color: "#f1c40f", display: "flex", alignItems: "center", gap: "4px" }}>
+                    🎮 애니메이션 수동 테스트 컨트롤러
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+                    <button
+                      onClick={() => triggerAnimation("hungry")}
+                      style={{
+                        background: "linear-gradient(180deg, #f39c12 0%, #e67e22 100%)",
+                        color: "white",
+                        border: "1px solid #d35400",
+                        borderRadius: "6px",
+                        padding: "5px",
+                        cursor: "pointer",
+                        fontSize: "11px",
+                        fontWeight: "bold",
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.3)"
+                      }}
+                    >
+                      🥩 배고픔 유도
+                    </button>
+                    <button
+                      onClick={() => triggerAnimation("feed")}
+                      style={{
+                        background: "linear-gradient(180deg, #2ecc71 0%, #27ae60 100%)",
+                        color: "white",
+                        border: "1px solid #219a52",
+                        borderRadius: "6px",
+                        padding: "5px",
+                        cursor: "pointer",
+                        fontSize: "11px",
+                        fontWeight: "bold",
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.3)"
+                      }}
+                    >
+                      🍎 먹이 주기 (행복)
+                    </button>
+                    <button
+                      onClick={() => triggerAnimation("action1")}
+                      disabled={!hasActions}
+                      style={{
+                        background: hasActions ? "linear-gradient(180deg, #3498db 0%, #2980b9 100%)" : "#7f8c8d",
+                        color: "white",
+                        border: hasActions ? "1px solid #1f618d" : "1px solid #7f8c8d",
+                        borderRadius: "6px",
+                        padding: "5px",
+                        cursor: hasActions ? "pointer" : "not-allowed",
+                        fontSize: "11px",
+                        fontWeight: "bold",
+                        opacity: hasActions ? 1 : 0.5,
+                        boxShadow: hasActions ? "0 2px 4px rgba(0,0,0,0.3)" : "none"
+                      }}
+                    >
+                      ⚡ 액션 1
+                    </button>
+                    <button
+                      onClick={() => triggerAnimation("action2")}
+                      disabled={!hasActions}
+                      style={{
+                        background: hasActions ? "linear-gradient(180deg, #9b59b6 0%, #8e44ad 100%)" : "#7f8c8d",
+                        color: "white",
+                        border: hasActions ? "1px solid #763e8f" : "1px solid #7f8c8d",
+                        borderRadius: "6px",
+                        padding: "5px",
+                        cursor: hasActions ? "pointer" : "not-allowed",
+                        fontSize: "11px",
+                        fontWeight: "bold",
+                        opacity: hasActions ? 1 : 0.5,
+                        boxShadow: hasActions ? "0 2px 4px rgba(0,0,0,0.3)" : "none"
+                      }}
+                    >
+                      🔥 액션 2
+                    </button>
+                  </div>
+                  {!hasActions && (
+                    <div style={{ fontSize: "9px", color: "#bdc3c7", textAlign: "center", marginTop: "2px" }}>
+                      💡 액션 1, 2는 레벨 3 이상(진화 2단계)부터 활성화됩니다!
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Stats Card */}
             <h2 style={{ fontSize: "17px", marginTop: 0, color: "#f1c40f", textShadow: "1px 1px 0px #000" }}>📊 포획 현황</h2>

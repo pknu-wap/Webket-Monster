@@ -6,12 +6,18 @@ export interface MonsterEvolution {
   levelThreshold: number;
   name: string;
   imageUrl: string;
+  spritesheetUrl1?: string;
+  spritesheetUrl2?: string;
+  effectUrl?: string;
 }
 
 export interface Monster {
   id: string;
   name: string;
   imageUrl: string;
+  spritesheetUrl1?: string;
+  spritesheetUrl2?: string;
+  effectUrl?: string;
   probability: number; // 0 to 1
   baseExpToNextLevel: number;
   evolutions?: MonsterEvolution[];
@@ -46,30 +52,254 @@ const S3_BUCKET_URL = "https://webket-monster-monster-assets.s3.ap-southeast-2.a
 
 // Mock Monster Data
 const MOCK_MONSTERS: Monster[] = [
+  // 1-3: 부경대
   {
-    id: "pknu_01",
+    id: "1",
     name: "뿌공이",
-    imageUrl: `${S3_BUCKET_URL}/pukyong-1.png`,
-    probability: 1.0, // 100% chance
+    imageUrl: `${S3_BUCKET_URL}/1.png`,
+    spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/1-1`,
+    spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/1-2`,
+    effectUrl: `${S3_BUCKET_URL}/effect/1`,
+    probability: 0.3,
     baseExpToNextLevel: 10,
     evolutions: [
       {
         levelThreshold: 3,
         name: "백경이",
-        imageUrl: `${S3_BUCKET_URL}/pukyong-2.png`
+        imageUrl: `${S3_BUCKET_URL}/2.png`,
+        spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/2-1`,
+        spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/2-2`,
+        effectUrl: `${S3_BUCKET_URL}/effect/2`
       },
       {
         levelThreshold: 5,
         name: "백경이와 뿌공이",
-        imageUrl: `${S3_BUCKET_URL}/pukyong-3.png`
+        imageUrl: `${S3_BUCKET_URL}/3.png`,
+        spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/3-1`,
+        spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/3-2`,
+        effectUrl: `${S3_BUCKET_URL}/effect/3`
+      }
+    ]
+  },
+  // 4-6: 구글
+  {
+    id: "4",
+    name: "구글링",
+    imageUrl: `${S3_BUCKET_URL}/4.png`,
+    spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/4-1`,
+    spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/4-2`,
+    effectUrl: `${S3_BUCKET_URL}/effect/4`,
+    probability: 0.2,
+    baseExpToNextLevel: 10,
+    evolutions: [
+      {
+        levelThreshold: 3,
+        name: "구글봇",
+        imageUrl: `${S3_BUCKET_URL}/5.png`,
+        spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/5-1`,
+        spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/5-2`,
+        effectUrl: `${S3_BUCKET_URL}/effect/5`
+      },
+      {
+        levelThreshold: 5,
+        name: "구글신",
+        imageUrl: `${S3_BUCKET_URL}/6.png`,
+        spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/6-1`,
+        spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/6-2`,
+        effectUrl: `${S3_BUCKET_URL}/effect/6`
+      }
+    ]
+  },
+  // 7-9: 네이버
+  {
+    id: "7",
+    name: "초록창",
+    imageUrl: `${S3_BUCKET_URL}/7.png`,
+    spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/7-1`,
+    spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/7-2`,
+    effectUrl: `${S3_BUCKET_URL}/effect/7`,
+    probability: 0.2,
+    baseExpToNextLevel: 10,
+    evolutions: [
+      {
+        levelThreshold: 3,
+        name: "라인이",
+        imageUrl: `${S3_BUCKET_URL}/8.png`,
+        spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/8-1`,
+        spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/8-2`,
+        effectUrl: `${S3_BUCKET_URL}/effect/8`
+      },
+      {
+        levelThreshold: 5,
+        name: "하이퍼클로바",
+        imageUrl: `${S3_BUCKET_URL}/9.png`,
+        spritesheetUrl1: `${S3_BUCKET_URL}/9-1`,
+        spritesheetUrl2: `${S3_BUCKET_URL}/9-2`,
+        effectUrl: `${S3_BUCKET_URL}/effect/9`
+      }
+    ]
+  },
+  // 10-12: 유튜브
+  {
+    id: "10",
+    name: "조회수",
+    imageUrl: `${S3_BUCKET_URL}/10.png`,
+    spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/10-1`,
+    spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/10-2`,
+    effectUrl: `${S3_BUCKET_URL}/effect/10`,
+    probability: 0.15,
+    baseExpToNextLevel: 10,
+    evolutions: [
+      {
+        levelThreshold: 3,
+        name: "크리에이터",
+        imageUrl: `${S3_BUCKET_URL}/11.png`,
+        spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/11-1`,
+        spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/11-2`,
+        effectUrl: `${S3_BUCKET_URL}/effect/11`
+      },
+      {
+        levelThreshold: 5,
+        name: "골드버튼",
+        imageUrl: `${S3_BUCKET_URL}/12.png`,
+        spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/12-1`,
+        spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/12-2`,
+        effectUrl: `${S3_BUCKET_URL}/effect/12`
+      }
+    ]
+  },
+  // 13-15: 깃허브
+  {
+    id: "13",
+    name: "커밋",
+    imageUrl: `${S3_BUCKET_URL}/13.png`,
+    spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/13-1`,
+    spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/13-2`,
+    effectUrl: `${S3_BUCKET_URL}/effect/13`,
+    probability: 0.15,
+    baseExpToNextLevel: 10,
+    evolutions: [
+      {
+        levelThreshold: 3,
+        name: "옥토캣",
+        imageUrl: `${S3_BUCKET_URL}/14.png`,
+        spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/14-1`,
+        spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/14-2`,
+        effectUrl: `${S3_BUCKET_URL}/effect/14`
+      },
+      {
+        levelThreshold: 5,
+        name: "잔디밭",
+        imageUrl: `${S3_BUCKET_URL}/15.png`,
+        spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/15-1`,
+        spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/15-2`,
+        effectUrl: `${S3_BUCKET_URL}/effect/15`
+      }
+    ]
+  },
+  // 16-18: 링크드인
+  {
+    id: "16",
+    name: "일촌신청",
+    imageUrl: `${S3_BUCKET_URL}/16.png`,
+    spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/16-1`,
+    spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/16-2`,
+    effectUrl: `${S3_BUCKET_URL}/effect/16`,
+    probability: 0.1,
+    baseExpToNextLevel: 10,
+    evolutions: [
+      {
+        levelThreshold: 3,
+        name: "프로직장러",
+        imageUrl: `${S3_BUCKET_URL}/17.png`,
+        spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/17-1`,
+        spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/17-2`,
+        effectUrl: `${S3_BUCKET_URL}/effect/17`
+      },
+      {
+        levelThreshold: 5,
+        name: "커리어킹",
+        imageUrl: `${S3_BUCKET_URL}/18.png`,
+        spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/18-1`,
+        spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/18-2`,
+        effectUrl: `${S3_BUCKET_URL}/effect/18`
+      }
+    ]
+  },
+  // 19-21: 나무위키
+  {
+    id: "19",
+    name: "작은나무",
+    imageUrl: `${S3_BUCKET_URL}/19.png`,
+    spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/19-1`,
+    spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/19-2`,
+    effectUrl: `${S3_BUCKET_URL}/effect/19`,
+    probability: 0.1,
+    baseExpToNextLevel: 10,
+    evolutions: [
+      {
+        levelThreshold: 3,
+        name: "기여분",
+        imageUrl: `${S3_BUCKET_URL}/20.png`,
+        spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/20-1`,
+        spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/20-2`,
+        effectUrl: `${S3_BUCKET_URL}/effect/20`
+      },
+      {
+        levelThreshold: 5,
+        name: "나무위키",
+        imageUrl: `${S3_BUCKET_URL}/21.png`,
+        spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/21-1`,
+        spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/21-2`,
+        effectUrl: `${S3_BUCKET_URL}/effect/21`
+      }
+    ]
+  },
+  // 22-24: chatgpt
+  {
+    id: "22",
+    name: "프롬프트",
+    imageUrl: `${S3_BUCKET_URL}/22.png`,
+    spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/22-1`,
+    spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/22-2`,
+    effectUrl: `${S3_BUCKET_URL}/effect/22`,
+    probability: 0.05,
+    baseExpToNextLevel: 10,
+    evolutions: [
+      {
+        levelThreshold: 3,
+        name: "GPT-4",
+        imageUrl: `${S3_BUCKET_URL}/23.png`,
+        spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/23-1`,
+        spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/23-2`,
+        effectUrl: `${S3_BUCKET_URL}/effect/23`
+      },
+      {
+        levelThreshold: 5,
+        name: "초지능",
+        imageUrl: `${S3_BUCKET_URL}/24.png`,
+        spritesheetUrl1: `${S3_BUCKET_URL}/spritesheet/24-1`,
+        spritesheetUrl2: `${S3_BUCKET_URL}/spritesheet/24-2`,
+        effectUrl: `${S3_BUCKET_URL}/effect/24`
       }
     ]
   }
 ];
 
-export function getEvolvedMonsterData(monster: Monster, evolutionStage: number = 1): { name: string; imageUrl: string } {
+export interface EvolvedMonsterData {
+  name: string;
+  imageUrl: string;
+  spritesheetUrl1?: string;
+  spritesheetUrl2?: string;
+  effectUrl?: string;
+}
+
+export function getEvolvedMonsterData(monster: Monster, evolutionStage: number = 1): EvolvedMonsterData {
   let currentName = monster.name;
   let currentImage = monster.imageUrl;
+  let currentSpritesheet1 = monster.spritesheetUrl1;
+  let currentSpritesheet2 = monster.spritesheetUrl2;
+  let currentEffect = monster.effectUrl;
 
   if (monster.evolutions && evolutionStage > 1) {
     const targetThreshold = evolutionStage === 2 ? 3 : 5;
@@ -77,10 +307,19 @@ export function getEvolvedMonsterData(monster: Monster, evolutionStage: number =
     if (evo) {
       currentName = evo.name;
       currentImage = evo.imageUrl;
+      currentSpritesheet1 = evo.spritesheetUrl1 || currentSpritesheet1;
+      currentSpritesheet2 = evo.spritesheetUrl2 || currentSpritesheet2;
+      currentEffect = evo.effectUrl || currentEffect;
     }
   }
 
-  return { name: currentName, imageUrl: currentImage };
+  return { 
+    name: currentName, 
+    imageUrl: currentImage,
+    spritesheetUrl1: currentSpritesheet1,
+    spritesheetUrl2: currentSpritesheet2,
+    effectUrl: currentEffect
+  };
 }
 
 export interface IMonsterService {
