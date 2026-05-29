@@ -15,6 +15,10 @@ import webket_monster.backend.sitevisit.domain.UserSiteVisit;
 import webket_monster.backend.sitevisit.repository.UserSiteVisitRepository;
 import webket_monster.backend.user.domain.User;
 import webket_monster.backend.user.repository.UserRepository;
+import webket_monster.backend.item.service.ItemService;
+import webket_monster.backend.monster.repository.MonsterRepository;
+import webket_monster.backend.usermonster.domain.UserMonster;
+import webket_monster.backend.usermonster.repository.UserMonsterRepository;
 
 import java.util.List;
 
@@ -26,6 +30,9 @@ public class QuestService {
     private final UserQuestRepository userQuestRepository;
     private final UserRepository userRepository;
     private final UserSiteVisitRepository userSiteVisitRepository;
+    private final ItemService itemService;
+    private final UserMonsterRepository userMonsterRepository;
+    private final MonsterRepository monsterRepository;
 
     @Transactional(readOnly = true)
     public List<QuestResponseDto> getAllQuests() {
@@ -54,15 +61,25 @@ public class QuestService {
 
     @Transactional
     public QuestRewardResponseDto receiveReward(Long userId, Long questId) {
+
         User user = findUser(userId);
 
         Quest quest = questRepository.findById(questId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 퀘스트입니다."));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("존재하지 않는 퀘스트입니다."));
 
-        UserQuest userQuest = userQuestRepository.findByUserAndQuest(user, quest)
-                .orElseThrow(() -> new IllegalArgumentException("유저 퀘스트가 존재하지 않습니다."));
+        UserQuest userQuest = userQuestRepository
+                .findByUserAndQuest(user, quest)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("유저 퀘스트가 존재하지 않습니다."));
 
         userQuest.receiveReward();
+
+        itemService.addQuestReward(
+                userId,
+                userQuest.getQuest().getRewardType().name(),
+                userQuest.getQuest().getRewardAmount()
+        );
 
         return QuestRewardResponseDto.from(userQuest);
     }
@@ -79,6 +96,35 @@ public class QuestService {
 
             userQuest.increaseProgress(amount);
         }
+    }
+
+    @Transactional
+    public void updateMonsterCollectQuests(Long userId) {
+        User user = findUser(userId);
+
+        List<UserMonster> userMonsters = userMonsterRepository.findByUserId(userId);
+
+        updateCollectSpecificMonstersQuest(user, userMonsters);
+        updateCollectAllMonstersQuest(user, userMonsters);
+    }
+
+    @Transactional
+    public void updateFinalEvolutionQuest(Long userId) {
+        User user = findUser(userId);
+
+        List<UserMonster> userMonsters = userMonsterRepository.findByUserId(userId);
+
+        boolean hasFinalPukyongMonster = userMonsters.stream()
+                .anyMatch(userMonster ->
+                        userMonster.getMonster().getName().contains("부경대")
+                                && userMonster.getMonster().getNextEvolutionMonsterId() == null
+                );
+
+        updateQuestProgress(
+                user,
+                QuestType.FINAL_EVOLUTION,
+                hasFinalPukyongMonster ? 1 : 0
+        );
     }
 
     @Transactional
@@ -177,6 +223,46 @@ public class QuestService {
 
             userQuest.updateProgress(progress);
         }
+    }
+
+    private void updateCollectSpecificMonstersQuest(
+            User user,
+            List<UserMonster> userMonsters
+    ) {
+        List<String> targetMonsterNames = List.of(
+                "네이버몬",
+                "나무위키몬"
+        );
+
+        long collectedCount = userMonsters.stream()
+                .map(userMonster -> userMonster.getMonster().getName())
+                .filter(targetMonsterNames::contains)
+                .distinct()
+                .count();
+
+        updateQuestProgress(
+                user,
+                QuestType.COLLECT_SPECIFIC_MONSTERS,
+                (int) collectedCount
+        );
+    }
+
+    private void updateCollectAllMonstersQuest(
+            User user,
+            List<UserMonster> userMonsters
+    ) {
+        long collectedMonsterCount = userMonsters.stream()
+                .map(userMonster -> userMonster.getMonster().getId())
+                .distinct()
+                .count();
+
+        long totalMonsterCount = monsterRepository.count();
+
+        updateQuestProgress(
+                user,
+                QuestType.COLLECT_ALL_MONSTERS,
+                collectedMonsterCount >= totalMonsterCount ? 1 : 0
+        );
     }
 
     private User findUser(Long userId) {
