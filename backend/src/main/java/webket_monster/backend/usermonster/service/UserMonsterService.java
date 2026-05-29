@@ -7,12 +7,15 @@ import webket_monster.backend.monster.domain.Monster;
 import webket_monster.backend.monster.dto.CatchMonsterRequestDto;
 import webket_monster.backend.monster.dto.CatchMonsterResponseDto;
 import webket_monster.backend.monster.repository.MonsterRepository;
-import java.time.LocalDateTime;
+import webket_monster.backend.quest.domain.QuestType;
+import webket_monster.backend.quest.service.QuestService;
 import webket_monster.backend.user.domain.User;
 import webket_monster.backend.user.repository.UserRepository;
 import webket_monster.backend.usermonster.domain.UserMonster;
 import webket_monster.backend.usermonster.dto.*;
 import webket_monster.backend.usermonster.repository.UserMonsterRepository;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +24,7 @@ public class UserMonsterService {
     private final UserMonsterRepository userMonsterRepository;
     private final UserRepository userRepository;
     private final MonsterRepository monsterRepository;
+    private final QuestService questService;
 
     @Transactional
     public CatchMonsterResponseDto catchMonster(Long userId, CatchMonsterRequestDto request) {
@@ -29,7 +33,7 @@ public class UserMonsterService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-        
+
         java.util.Optional<UserMonster> existing = userMonsterRepository.findByUserId(userId).stream()
                 .filter(um -> um.getMonster().getId().equals(monster.getId()))
                 .findFirst();
@@ -37,6 +41,7 @@ public class UserMonsterService {
         if (existing.isPresent()) {
             UserMonster um = existing.get();
             um.addExp(5);
+
             return new CatchMonsterResponseDto(
                     "포획 성공! 경험치가 올랐습니다.",
                     false,
@@ -47,28 +52,32 @@ public class UserMonsterService {
                             um.getExp()
                     )
             );
-        } else {
-            UserMonster newMonster = UserMonster.builder()
-                    .user(user)
-                    .monster(monster)
-                    .level(1)
-                    .exp(0)
-                    .isActive(false)
-                    .hungryAt(LocalDateTime.now().plusHours(3))
-                    .build();
-            userMonsterRepository.save(newMonster);
-
-            return new CatchMonsterResponseDto(
-                    "새로운 몬스터를 포획했습니다!",
-                    false,
-                    50,
-                    new CatchMonsterResponseDto.CurrentMonsterDto(
-                            monster.getId(),
-                            1,
-                            0
-                    )
-            );
         }
+
+        UserMonster newMonster = UserMonster.builder()
+                .user(user)
+                .monster(monster)
+                .level(1)
+                .exp(0)
+                .isActive(false)
+                .hungryAt(LocalDateTime.now().plusHours(3))
+                .build();
+
+        userMonsterRepository.save(newMonster);
+
+        // 몬스터 획득 퀘스트 갱신
+        questService.updateMonsterCollectQuests(userId);
+
+        return new CatchMonsterResponseDto(
+                "새로운 몬스터를 포획했습니다!",
+                false,
+                50,
+                new CatchMonsterResponseDto.CurrentMonsterDto(
+                        monster.getId(),
+                        1,
+                        0
+                )
+        );
     }
 
     @Transactional(readOnly = true)
@@ -94,7 +103,6 @@ public class UserMonsterService {
                 monster.getImageUrl()
         );
     }
-
 
     @Transactional
     public LevelUpResponseDto levelUpMonster(Long userMonsterId) {
@@ -133,6 +141,9 @@ public class UserMonsterService {
 
         userMonster.evolve(nextMonster);
 
+        // 최종 진화 퀘스트 갱신
+        questService.updateFinalEvolutionQuest(userMonster.getUser().getId());
+
         return new EvolveResponseDto(
                 userMonster.getId(),
                 currentMonster.getId(),
@@ -144,17 +155,12 @@ public class UserMonsterService {
 
     @Transactional
     public MonsterActionResponseDto triggerMonsterAction(Long userMonsterId) {
-
         UserMonster userMonster = userMonsterRepository.findById(userMonsterId)
                 .orElseThrow(() -> new IllegalArgumentException("몬스터를 찾을 수 없습니다."));
 
-        // TODO: 조건 로직 추가 (예: 레벨, 상태 등)
-
-        String result = "몬스터 액션이 발동되었습니다.";
-
         return new MonsterActionResponseDto(
                 userMonster.getId(),
-                result
+                "몬스터 액션이 발동되었습니다."
         );
     }
 
@@ -174,8 +180,6 @@ public class UserMonsterService {
         UserMonster userMonster = userMonsterRepository.findById(userMonsterId)
                 .orElseThrow(() -> new IllegalArgumentException("보유한 몬스터를 찾을 수 없습니다."));
 
-        // TODO: 몬스터 이펙트 발동 조건 및 결과 처리 로직 추가 예정
-
         return new MonsterEffectResponseDto(
                 userMonster.getId(),
                 "몬스터 이펙트가 발동되었습니다."
@@ -184,14 +188,19 @@ public class UserMonsterService {
 
     @Transactional
     public MonsterFeedResponseDto feedMonster(Long userMonsterId) {
-
         UserMonster userMonster = userMonsterRepository.findById(userMonsterId)
                 .orElseThrow(() -> new IllegalArgumentException("보유한 몬스터를 찾을 수 없습니다."));
 
-        LocalDateTime nextHungryAt =
-                LocalDateTime.now().plusHours(3);
+        LocalDateTime nextHungryAt = LocalDateTime.now().plusHours(3);
 
         userMonster.updateHungryAt(nextHungryAt);
+
+        // 먹이 퀘스트 진행도 증가
+        questService.increaseQuestProgress(
+                userMonster.getUser().getId(),
+                QuestType.FEED_COUNT,
+                1
+        );
 
         return new MonsterFeedResponseDto(
                 userMonster.getId(),
