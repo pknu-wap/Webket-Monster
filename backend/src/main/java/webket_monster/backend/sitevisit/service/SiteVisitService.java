@@ -34,17 +34,19 @@ public class SiteVisitService {
 
         UserSiteVisit savedSiteVisit = userSiteVisitRepository.save(siteVisit);
 
-        // 사이트 방문 관련 퀘스트 진행도 갱신
         questService.updateSiteVisitQuests(userId);
 
         boolean action1Triggered = savedSiteVisit.isAction1Triggered();
+
+        String triggeredAction = action1Triggered ? "ACTION1" : "NONE";
 
         return SiteVisitResponseDto.builder()
                 .siteName(savedSiteVisit.getSiteName())
                 .visitCount(savedSiteVisit.getVisitCount())
                 .action1Triggered(action1Triggered)
+                .triggeredAction(triggeredAction)
                 .message(action1Triggered
-                        ? "사이트 10회 방문으로 action1 트리거 조건이 충족되었습니다."
+                        ? "ACTION1 트리거가 발생했습니다."
                         : "사이트 방문 기록이 저장되었습니다.")
                 .build();
     }
