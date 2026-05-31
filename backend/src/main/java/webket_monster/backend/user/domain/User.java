@@ -28,12 +28,16 @@ public class User {
     @Column(nullable = false)
     private Integer expPotionCount;
 
+    @Column(nullable = false)
+    private Integer feedCount;
+
     @Builder
     public User(String email, String nickname) {
         this.email = email;
         this.nickname = nickname;
         this.evolutionStoneCount = 0;
         this.expPotionCount = 0;
+        this.feedCount = 0;
     }
 
     public void addEvolutionStone(int count) {
@@ -44,7 +48,6 @@ public class User {
         if (this.evolutionStoneCount < count) {
             throw new IllegalStateException("진화의 돌이 부족합니다.");
         }
-
         this.evolutionStoneCount -= count;
     }
 
@@ -56,7 +59,14 @@ public class User {
         if (this.expPotionCount <= 0) {
             throw new IllegalStateException("경험치 물약이 부족합니다.");
         }
-
         this.expPotionCount--;
+    }
+
+    public void increaseFeedCount() {
+        this.feedCount++;
+    }
+
+    public boolean isAction2Triggered() {
+        return this.feedCount % 10 == 0;
     }
 }
