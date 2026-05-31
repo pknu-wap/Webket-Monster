@@ -188,6 +188,7 @@ public class UserMonsterService {
 
     @Transactional
     public MonsterFeedResponseDto feedMonster(Long userMonsterId) {
+
         UserMonster userMonster = userMonsterRepository.findById(userMonsterId)
                 .orElseThrow(() -> new IllegalArgumentException("보유한 몬스터를 찾을 수 없습니다."));
 
@@ -195,17 +196,27 @@ public class UserMonsterService {
 
         userMonster.updateHungryAt(nextHungryAt);
 
-        // 먹이 퀘스트 진행도 증가
         questService.increaseQuestProgress(
                 userMonster.getUser().getId(),
                 QuestType.FEED_COUNT,
                 1
         );
 
+        User user = userMonster.getUser();
+
+        user.increaseFeedCount();
+
+        boolean action2Triggered = user.isAction2Triggered();
+
+        String triggeredAction = action2Triggered ? "ACTION2" : "NONE";
+
         return new MonsterFeedResponseDto(
                 userMonster.getId(),
                 nextHungryAt,
-                "먹이주기가 완료되었습니다."
+                action2Triggered
+                        ? "먹이주기가 완료되었고 ACTION2 트리거가 발생했습니다."
+                        : "먹이주기가 완료되었습니다.",
+                triggeredAction
         );
     }
 
