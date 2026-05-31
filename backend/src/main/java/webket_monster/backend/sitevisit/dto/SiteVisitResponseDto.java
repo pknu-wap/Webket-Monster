@@ -10,5 +10,6 @@ public class SiteVisitResponseDto {
     private String siteName;
     private int visitCount;
     private boolean action1Triggered;
+    private String triggeredAction;
     private String message;
 }
