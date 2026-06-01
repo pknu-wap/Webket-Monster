@@ -36,18 +36,39 @@ public class UserMonster {
     @Column(nullable = false)
     private Boolean isActive;
 
+    /** 먹이를 줄 수 있는 다음 시간 (null이면 즉시 가능) */
     @Column(name = "hungry_at")
     private LocalDateTime hungryAt;
 
+    /** 이펙트 대기 여부 (트리거 발동 시 true) */
+    @Column(name = "has_pending_effect", nullable = false)
+    private Boolean hasPendingEffect = false;
+
     @Builder
-    public UserMonster(User user, Monster monster, Integer level, Integer exp, Boolean isActive, LocalDateTime hungryAt) {
+    public UserMonster(User user, Monster monster, Integer level, Integer exp,
+                       Boolean isActive, LocalDateTime hungryAt) {
         this.user = user;
         this.monster = monster;
         this.level = level;
         this.exp = exp;
         this.isActive = isActive;
         this.hungryAt = hungryAt;
+        this.hasPendingEffect = false;
     }
+
+    // ─── 이펙트 관련 ───
+
+    /** 이펙트 트리거 (hasPendingEffect = true) */
+    public void triggerEffect() {
+        this.hasPendingEffect = true;
+    }
+
+    /** 이펙트 소비 완료 처리 (hasPendingEffect = false) */
+    public void clearPendingEffect() {
+        this.hasPendingEffect = false;
+    }
+
+    // ─── 성장 관련 ───
 
     public int getRequiredExpForNextLevel() {
         return 100 * (level * level);
@@ -73,6 +94,8 @@ public class UserMonster {
 
         this.monster = nextEvolutionMonster;
     }
+
+    // ─── 기타 ───
 
     public void changeActive(boolean isActive) {
         this.isActive = isActive;

@@ -2,76 +2,56 @@ package webket_monster.backend.quest.domain;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import webket_monster.backend.user.domain.User;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"user_id", "quest_id"})
-        }
-)
+@Table(name = "user_quests")
 public class UserQuest {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
+    @Column(nullable = false)
+    private Long userId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "quest_id")
-    private Quest quest;
+    @Column(nullable = false)
+    private String questId;
 
-    private int progress;
+    @Column(nullable = false)
+    private Integer currentCount = 0;
 
-    private boolean completed;
+    @Column(nullable = false)
+    private Boolean completed = false;
 
-    private boolean rewarded;
+    @Column(nullable = false)
+    private Boolean claimed = false;
 
-    public UserQuest(User user, Quest quest) {
-        this.user = user;
-        this.quest = quest;
-        this.progress = 0;
-        this.completed = false;
-        this.rewarded = false;
+    @Builder
+    public UserQuest(Long userId, String questId, Integer currentCount, Boolean completed, Boolean claimed) {
+        this.userId = userId;
+        this.questId = questId;
+        if (currentCount != null) this.currentCount = currentCount;
+        if (completed != null) this.completed = completed;
+        if (claimed != null) this.claimed = claimed;
     }
 
-    public void updateProgress(int progress) {
-        this.progress = Math.min(progress, quest.getTargetCount());
-
-        if (this.progress >= quest.getTargetCount()) {
-            this.completed = true;
-        }
+    public void updateProgress(int count, int target) {
+        this.currentCount = count;
+        this.completed = (this.currentCount >= target);
     }
 
-    public void increaseProgress(int amount) {
-        if (completed) {
-            return;
-        }
-
-        this.progress += amount;
-
-        if (this.progress >= quest.getTargetCount()) {
-            this.progress = quest.getTargetCount();
-            this.completed = true;
-        }
+    public void incrementProgress(int amount, int target) {
+        if (this.completed) return;
+        this.currentCount = Math.min(this.currentCount + amount, target);
+        this.completed = (this.currentCount >= target);
     }
 
-    public void receiveReward() {
-        if (!completed) {
-            throw new IllegalStateException("아직 완료되지 않은 퀘스트입니다.");
-        }
-
-        if (rewarded) {
-            throw new IllegalStateException("이미 보상을 수령한 퀘스트입니다.");
-        }
-
-        this.rewarded = true;
+    public void claim() {
+        this.claimed = true;
     }
 }

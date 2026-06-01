@@ -40,6 +40,14 @@ public class UserMonsterController {
         );
     }
 
+    @PostMapping("/user-monsters/{userMonsterId}/effect/clear")
+    public ResponseEntity<Void> clearMonsterEffect(
+            @PathVariable Long userMonsterId) {
+
+        userMonsterService.clearMonsterEffect(userMonsterId);
+        return ResponseEntity.ok().build();
+    }
+
     @PatchMapping("/user-monsters/{userMonsterId}/evolve")
     public ResponseEntity<EvolveResponseDto> evolveMonster(@PathVariable Long userMonsterId) {
         return ResponseEntity.ok(userMonsterService.evolveMonster(userMonsterId));

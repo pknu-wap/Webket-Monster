@@ -18,4 +18,5 @@ public class UserMonsterResponseDto {
     private int requiredExpForNextLevel;
     private String evolutionInfo;
     private String imageUrl;
+    private boolean hasPendingEffect;
 }

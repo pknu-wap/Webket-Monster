@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Storage } from "@plasmohq/storage";
-import { monsterService, UserInfo, Inventory, Monster, getEvolvedMonsterData } from "./services/monsterService";
+import { monsterService, UserInfo, Inventory, Monster, getEvolvedMonsterData, getRequiredExpForLevel } from "./services/monsterService";
 import { questService, Quest } from "./services/questService";
 
 export default function IndexPopup() {
@@ -19,8 +19,27 @@ export default function IndexPopup() {
     setQuests(await questService.getQuests());
   };
 
+  const refreshQuests = async () => {
+    setQuests(await questService.getQuests());
+  };
+
   useEffect(() => {
     loadData();
+  }, []);
+
+  // 퀘스트 탭 전환 시 자동 새로고침
+  useEffect(() => {
+    if (activeTab === "quest") {
+      refreshQuests();
+    }
+  }, [activeTab]);
+
+  // 30초마다 퀘스트 자동 폴링
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshQuests();
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleSetActive = async (caughtMonsterId: string) => {
@@ -240,7 +259,10 @@ export default function IndexPopup() {
             {userInfo.activeMonsterId && (() => {
               const activeCm = inventory.caughtMonsters.find(cm => cm.id === userInfo.activeMonsterId);
               if (!activeCm) return null;
-              const hasActions = activeCm.level >= 3; // stage 2 & 3 have actions
+              
+              const currentStage = activeCm.evolutionStage || 1;
+              const showActions = currentStage >= 2;
+              const showEffect = currentStage === 3;
               
               const triggerAnimation = async (type: "hungry" | "feed" | "action1" | "action2") => {
                 const storage = new Storage();
@@ -304,46 +326,95 @@ export default function IndexPopup() {
                     >
                       🍎 먹이 주기 (행복)
                     </button>
-                    <button
-                      onClick={() => triggerAnimation("action1")}
-                      disabled={!hasActions}
-                      style={{
-                        background: hasActions ? "linear-gradient(180deg, #3498db 0%, #2980b9 100%)" : "#7f8c8d",
-                        color: "white",
-                        border: hasActions ? "1px solid #1f618d" : "1px solid #7f8c8d",
-                        borderRadius: "6px",
-                        padding: "5px",
-                        cursor: hasActions ? "pointer" : "not-allowed",
-                        fontSize: "11px",
-                        fontWeight: "bold",
-                        opacity: hasActions ? 1 : 0.5,
-                        boxShadow: hasActions ? "0 2px 4px rgba(0,0,0,0.3)" : "none"
-                      }}
-                    >
-                      ⚡ 액션 1
-                    </button>
-                    <button
-                      onClick={() => triggerAnimation("action2")}
-                      disabled={!hasActions}
-                      style={{
-                        background: hasActions ? "linear-gradient(180deg, #9b59b6 0%, #8e44ad 100%)" : "#7f8c8d",
-                        color: "white",
-                        border: hasActions ? "1px solid #763e8f" : "1px solid #7f8c8d",
-                        borderRadius: "6px",
-                        padding: "5px",
-                        cursor: hasActions ? "pointer" : "not-allowed",
-                        fontSize: "11px",
-                        fontWeight: "bold",
-                        opacity: hasActions ? 1 : 0.5,
-                        boxShadow: hasActions ? "0 2px 4px rgba(0,0,0,0.3)" : "none"
-                      }}
-                    >
-                      🔥 액션 2
-                    </button>
+
+                    {showActions && (
+                      <>
+                        <button
+                          onClick={() => triggerAnimation("action1")}
+                          style={{
+                            background: "linear-gradient(180deg, #3498db 0%, #2980b9 100%)",
+                            color: "white",
+                            border: "1px solid #1f618d",
+                            borderRadius: "6px",
+                            padding: "5px",
+                            cursor: "pointer",
+                            fontSize: "11px",
+                            fontWeight: "bold",
+                            boxShadow: "0 2px 4px rgba(0,0,0,0.3)"
+                          }}
+                        >
+                          ⚡ 액션 1
+                        </button>
+                        <button
+                          onClick={() => triggerAnimation("action2")}
+                          style={{
+                            background: "linear-gradient(180deg, #9b59b6 0%, #8e44ad 100%)",
+                            color: "white",
+                            border: "1px solid #763e8f",
+                            borderRadius: "6px",
+                            padding: "5px",
+                            cursor: "pointer",
+                            fontSize: "11px",
+                            fontWeight: "bold",
+                            boxShadow: "0 2px 4px rgba(0,0,0,0.3)"
+                          }}
+                        >
+                          🔥 액션 2
+                        </button>
+                      </>
+                    )}
+
+                    {showEffect && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const res = await monsterService.castEffect(activeCm.id);
+                            const storage = new Storage();
+                            await storage.set("activeMonsterTrigger", "effect");
+                            
+                            if (res.success) {
+                              setMessage("✨ " + res.message);
+                            } else {
+                              console.warn("Backend effect API failed, executing local fallback overlay: ", res.message);
+                              setMessage("✨ 로컬 이펙트 스킬 시전!");
+                            }
+                            setTimeout(() => setMessage(null), 3000);
+                          } catch (e) {
+                            console.error("Effect cast error:", e);
+                            const storage = new Storage();
+                            await storage.set("activeMonsterTrigger", "effect");
+                            setMessage("✨ 로컬 이펙트 스킬 시전!");
+                            setTimeout(() => setMessage(null), 3000);
+                          }
+                        }}
+                        style={{
+                          gridColumn: "span 2",
+                          background: "linear-gradient(180deg, #f1c40f 0%, #d35400 100%)",
+                          color: "white",
+                          border: "2px solid #fff",
+                          borderRadius: "6px",
+                          padding: "6px",
+                          cursor: "pointer",
+                          fontSize: "11px",
+                          fontWeight: "bold",
+                          boxShadow: "0 0 10px rgba(241,196,15,0.6)",
+                          textShadow: "1px 1px 0px rgba(0,0,0,0.4)",
+                          marginTop: "4px"
+                        }}
+                        className="glowing-btn"
+                      >
+                        ✨ 이펙트 스킬 시전 (동영상 오버레이)
+                      </button>
+                    )}
                   </div>
-                  {!hasActions && (
+                  {!showActions && (
                     <div style={{ fontSize: "9px", color: "#bdc3c7", textAlign: "center", marginTop: "2px" }}>
-                      💡 액션 1, 2는 레벨 3 이상(진화 2단계)부터 활성화됩니다!
+                      💡 액션 1, 2는 진화 2단계(레벨 3 이상)부터 활성화됩니다!
+                    </div>
+                  )}
+                  {showActions && !showEffect && (
+                    <div style={{ fontSize: "9px", color: "#bdc3c7", textAlign: "center", marginTop: "2px" }}>
+                      💡 스킬 이펙트는 진화 3단계(최종 진화형)부터 활성화됩니다!
                     </div>
                   )}
                 </div>
@@ -434,7 +505,7 @@ export default function IndexPopup() {
                   
                   const currentStage = cm.evolutionStage || 1;
                   const mData = getEvolvedMonsterData(mBaseData, currentStage);
-                  const requiredExp = mBaseData.baseExpToNextLevel * cm.level;
+                  const requiredExp = getRequiredExpForLevel(cm.level);
                   const expPercent = cm.level >= 5 ? 100 : Math.min(100, (cm.exp / requiredExp) * 100);
                   const isMaxLevel = cm.level >= 5;
 
@@ -696,12 +767,13 @@ export default function IndexPopup() {
                 .filter(q => q.type === questSubTab)
                 .map(q => {
                   const progressPercent = Math.min(100, (q.currentCount / q.targetCount) * 100);
+                  const isQuestFullyCompleted = q.completed && q.currentCount >= q.targetCount;
                   return (
                     <div key={q.id} style={{
                       background: q.claimed ? "rgba(0,0,0,0.2)" : "#2c3e50",
                       padding: "10px",
                       borderRadius: "10px",
-                      border: q.claimed ? "2px solid #555" : q.completed ? "2px solid #f1c40f" : "1px solid #7f8c8d",
+                      border: q.claimed ? "2px solid #555" : isQuestFullyCompleted ? "2px solid #f1c40f" : "1px solid #7f8c8d",
                       boxShadow: "0 3px 5px rgba(0,0,0,0.2)",
                       opacity: q.claimed ? 0.6 : 1
                     }}>
@@ -717,9 +789,9 @@ export default function IndexPopup() {
                       {!q.claimed && (
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
                           <div style={{ flex: 1, height: "6px", background: "#1a1a24", borderRadius: "3px", overflow: "hidden" }}>
-                            <div style={{ height: "100%", width: `${progressPercent}%`, background: q.completed ? "#f1c40f" : "#3498db", transition: "width 0.3s" }} />
+                            <div style={{ height: "100%", width: `${progressPercent}%`, background: isQuestFullyCompleted ? "#f1c40f" : "#3498db", transition: "width 0.3s" }} />
                           </div>
-                          <span style={{ fontSize: "10px", color: q.completed ? "#f1c40f" : "#bdc3c7", fontWeight: "bold" }}>
+                          <span style={{ fontSize: "10px", color: isQuestFullyCompleted ? "#f1c40f" : "#bdc3c7", fontWeight: "bold" }}>
                             {q.currentCount}/{q.targetCount}
                           </span>
                         </div>
@@ -741,7 +813,7 @@ export default function IndexPopup() {
 
                         {!q.claimed && (
                           <button
-                            disabled={!q.completed}
+                            disabled={!isQuestFullyCompleted}
                             onClick={async () => {
                               const res = await questService.claimReward(q.id);
                               if (res.success) {
@@ -755,15 +827,15 @@ export default function IndexPopup() {
                             style={{
                               padding: "4px 8px",
                               borderRadius: "4px",
-                              border: q.completed ? "1px solid #f1c40f" : "1px solid #7f8c8d",
-                              background: q.completed ? "linear-gradient(180deg, #f1c40f 0%, #f39c12 100%)" : "#7f8c8d",
-                              color: q.completed ? "#000" : "#fff",
-                              cursor: q.completed ? "pointer" : "not-allowed",
+                              border: isQuestFullyCompleted ? "1px solid #f1c40f" : "1px solid #7f8c8d",
+                              background: isQuestFullyCompleted ? "linear-gradient(180deg, #f1c40f 0%, #f39c12 100%)" : "#7f8c8d",
+                              color: isQuestFullyCompleted ? "#000" : "#fff",
+                              cursor: isQuestFullyCompleted ? "pointer" : "not-allowed",
                               fontWeight: "900",
                               fontSize: "10px",
-                              boxShadow: q.completed ? "0 0 6px rgba(241, 196, 15, 0.4)" : "none"
+                              boxShadow: isQuestFullyCompleted ? "0 0 6px rgba(241, 196, 15, 0.4)" : "none"
                             }}
-                            className={q.completed ? "glowing-btn-small" : ""}
+                            className={isQuestFullyCompleted ? "glowing-btn-small" : ""}
                           >
                             보상 받기
                           </button>

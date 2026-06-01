@@ -26,7 +26,73 @@ import { monsterService, Monster, getEvolvedMonsterData } from "./services/monst
 import { questService } from "./services/questService";
 
 export const config: PlasmoCSConfig = {
-  matches: ["*://*.pknu.ac.kr/*"]
+  matches: [
+    "*://*.pknu.ac.kr/*",
+    "*://*.google.com/*",
+    "*://*.google.co.kr/*",
+    "*://*.naver.com/*",
+    "*://*.youtube.com/*",
+    "*://*.github.com/*",
+    "*://*.linkedin.com/*",
+    "*://*.namu.wiki/*",
+    "*://*.chatgpt.com/*",
+    "*://*.openai.com/*",
+    "*://*.grok.com/*",
+    "*://*.x.com/i/grok/*",
+    "*://*.claude.ai/*",
+    "*://*.perplexity.ai/*"
+  ]
+};
+
+const getTargetMonsterIdForDomain = (hostname: string): string | null => {
+  if (hostname.includes("pknu.ac.kr")) return "1";
+  if (hostname.includes("google.com") || hostname.includes("google.co.kr")) return "4";
+  if (hostname.includes("naver.com")) return "7";
+  if (hostname.includes("youtube.com")) return "10";
+  if (hostname.includes("github.com")) return "13";
+  if (hostname.includes("linkedin.com")) return "16";
+  if (hostname.includes("namu.wiki")) return "19";
+  if (hostname.includes("chatgpt.com") || hostname.includes("openai.com")) return "22";
+  return null;
+};
+
+// Chroma Key green screen removal helper
+const loadImageWithChromaKey = (url: string): Promise<PIXI.Texture> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = url;
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(PIXI.Texture.from(img));
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+
+        // Green chromakey detection: green is dominant
+        if (g > r * 1.3 && g > b * 1.3 && g > 60) {
+          data[i + 3] = 0; // Make transparent
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+
+      // Create texture from the keyed canvas
+      const texture = PIXI.Texture.from(canvas);
+      resolve(texture);
+    };
+    img.onerror = (e) => reject(e);
+  });
 };
 
 export default function WebketMonsterOverlay() {
@@ -43,6 +109,7 @@ export default function WebketMonsterOverlay() {
     spritesheetUrl2?: string;
   } | null>(null);
   const [activeMonsterLevel, setActiveMonsterLevel] = useState<number>(0);
+  const [activeEffectVideoUrl, setActiveEffectVideoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const storage = new Storage();
@@ -93,23 +160,72 @@ export default function WebketMonsterOverlay() {
   }, []);
 
   useEffect(() => {
-    // Record page visit quest progress when on PKNU site
-    if (window.location.hostname.includes("pknu.ac.kr")) {
-      questService.incrementProgress("visit", 1).catch(e => console.error("Quest update error:", e));
-    }
+    if (!activeMonsterInfo) return;
+
+    let pollingInterval: ReturnType<typeof setInterval>;
+
+    const pollPendingEffect = async () => {
+      try {
+        const userInfo = await monsterService.getUserInfo();
+        if (!userInfo.activeMonsterId) return;
+
+        const inventory = await monsterService.getInventory();
+        const activeCm = inventory.caughtMonsters.find(cm => cm.id === userInfo.activeMonsterId);
+
+        if (activeCm && activeCm.hasPendingEffect) {
+          const videoUrl = "https://webket-monster-monster-assets.s3.ap-southeast-2.amazonaws.com/download/grok-video-7d836938-dcc6-47c2-bcc5-a786eeaf44cb";
+          setActiveEffectVideoUrl(videoUrl);
+
+          await monsterService.clearEffect(activeCm.id);
+        }
+      } catch (e) {
+        console.error("Polling for monster effect failed:", e);
+      }
+    };
+
+    pollingInterval = setInterval(pollPendingEffect, 3000);
+
+    return () => {
+      clearInterval(pollingInterval);
+    };
+  }, [activeMonsterInfo]);
+
+  useEffect(() => {
+    const storage = new Storage();
+    const unwatch = storage.watch({
+      "activeMonsterTrigger": (change) => {
+        if (change.newValue === "effect") {
+          const videoUrl = "https://webket-monster-monster-assets.s3.ap-southeast-2.amazonaws.com/download/grok-video-7d836938-dcc6-47c2-bcc5-a786eeaf44cb";
+          setActiveEffectVideoUrl(videoUrl);
+          storage.set("activeMonsterTrigger", null);
+        }
+      }
+    });
+    return () => {
+      unwatch();
+    };
+  }, []);
+
+  useEffect(() => {
+    // Record page visit quest progress across all configured sites
+    questService.recordPageVisit(window.location.hostname).catch(e => console.error("Quest update error:", e));
   }, []);
 
   useEffect(() => {
     // Determine if a monster should spawn on page load
     const rollForSpawn = async () => {
-      if (!window.location.hostname.includes("pknu.ac.kr")) return;
+      const hostname = window.location.hostname;
+      const targetMonsterId = getTargetMonsterIdForDomain(hostname);
+      if (!targetMonsterId) return;
       
       const userInfo = await monsterService.getUserInfo();
       if (userInfo.spawnWildMonsters === false) return;
       
       const monsters = await monsterService.getMonsterList();
-      for (const monster of monsters.sort(() => Math.random() - 0.5)) {
-        if (Math.random() < monster.probability) {
+      const monster = monsters.find(m => m.id === targetMonsterId);
+      if (monster) {
+        // 20% probability of spawn on respective site
+        if (Math.random() < 0.2) {
           setSpawnedMonster(monster);
           
           // Set initial random position within window bounds
@@ -117,7 +233,6 @@ export default function WebketMonsterOverlay() {
             x: Math.max(10, Math.floor(Math.random() * (window.innerWidth - 150))),
             y: Math.max(10, Math.floor(Math.random() * (window.innerHeight - 150)))
           });
-          break;
         }
       }
     };
@@ -150,7 +265,7 @@ export default function WebketMonsterOverlay() {
       containerRef.current.appendChild(app.canvas);
 
       try {
-        const texture = await PIXI.Assets.load(spawnedMonster.spritesheetUrl1 || spawnedMonster.imageUrl);
+        const texture = await loadImageWithChromaKey(spawnedMonster.spritesheetUrl1 || spawnedMonster.imageUrl);
         
         let idleFrames: PIXI.Texture[] = [texture];
         let walkFrames: PIXI.Texture[] = [texture];
@@ -211,7 +326,7 @@ export default function WebketMonsterOverlay() {
 
           if (hasSpritesheet) {
             const currentFrames = isMoving ? walkFrames : idleFrames;
-            const frameIndex = Math.floor(animationElapsed / 8) % currentFrames.length;
+            const frameIndex = Math.floor(animationElapsed / 15) % currentFrames.length;
             sprite.texture = currentFrames[frameIndex];
           }
 
@@ -285,7 +400,7 @@ export default function WebketMonsterOverlay() {
 
       try {
         // Load Sheet 1
-        const texture1 = await PIXI.Assets.load(activeMonsterInfo.spritesheetUrl1 || activeMonsterInfo.imageUrl);
+        const texture1 = await loadImageWithChromaKey(activeMonsterInfo.spritesheetUrl1 || activeMonsterInfo.imageUrl);
         const spriteSheetColumns = 4;
         const spriteSheetRows = 4;
         const frameWidth1 = texture1.width / spriteSheetColumns;
@@ -324,7 +439,7 @@ export default function WebketMonsterOverlay() {
 
         if (hasSheet2 && activeMonsterLevel >= 3) {
           try {
-            const texture2 = await PIXI.Assets.load(activeMonsterInfo.spritesheetUrl2!);
+            const texture2 = await loadImageWithChromaKey(activeMonsterInfo.spritesheetUrl2!);
             const frameWidth2 = texture2.width / spriteSheetColumns;
             const frameHeight2 = texture2.height / spriteSheetRows;
             
@@ -332,10 +447,13 @@ export default function WebketMonsterOverlay() {
               source: texture2.source,
               frame: new PIXI.Rectangle(i * frameWidth2, 0 * frameHeight2, frameWidth2, frameHeight2)
             }));
-            action2Frames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
-              source: texture2.source,
-              frame: new PIXI.Rectangle(i * frameWidth2, 1 * frameHeight2, frameWidth2, frameHeight2)
-            }));
+            
+            if (activeMonsterLevel >= 4) {
+              action2Frames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
+                source: texture2.source,
+                frame: new PIXI.Rectangle(i * frameWidth2, 1 * frameHeight2, frameWidth2, frameHeight2)
+              }));
+            }
           } catch (e) {
             console.error("Failed to load spritesheet 2:", e);
           }
@@ -348,6 +466,25 @@ export default function WebketMonsterOverlay() {
         sprite.anchor.set(0.5);
         sprite.x = app.screen.width / 2;
         sprite.y = app.screen.height / 2;
+        
+        sprite.eventMode = 'static';
+        sprite.cursor = 'pointer';
+        
+        sprite.on('pointerdown', async () => {
+          const isHungry = await monsterService.isActiveMonsterHungry();
+          if (isHungry) {
+            const feedResult = await monsterService.feedActiveMonster();
+            setAnimationState("happy");
+            setActiveMonsterLevel(feedResult.newLevel);
+            
+            const storage = new Storage();
+            await storage.set("userInfo", await monsterService.getUserInfo());
+            
+            if (feedResult.triggerAction2) {
+              await storage.set("activeMonsterTrigger", "action2");
+            }
+          }
+        });
 
         app.stage.addChild(sprite);
 
@@ -365,16 +502,25 @@ export default function WebketMonsterOverlay() {
           loopCounter = 0;
         };
 
+        // Initial hunger check
+        const initHunger = async () => {
+          const isHungry = await monsterService.isActiveMonsterHungry();
+          if (isHungry) {
+            setAnimationState("hungry");
+          }
+        };
+        initHunger();
+
         // App animation ticker
         app.ticker.add((ticker) => {
           elapsed += ticker.deltaTime;
           animationElapsed += ticker.deltaTime;
 
           // Compute frame out of 4
-          const subFrameIndex = Math.floor(animationElapsed / 8) % 4;
+          const subFrameIndex = Math.floor(animationElapsed / 15) % 4;
 
           // Loop tracking
-          if (Math.floor(animationElapsed / 8) >= 4) {
+          if (Math.floor(animationElapsed / 15) >= 4) {
             animationElapsed = 0;
             loopCounter += 1;
 
@@ -417,7 +563,7 @@ export default function WebketMonsterOverlay() {
               setAnimationState("action1");
             }
           } else if (trigger === "action2") {
-            if (activeMonsterLevel >= 3) {
+            if (activeMonsterLevel >= 4) {
               setAnimationState("action2");
             }
           }
@@ -492,7 +638,7 @@ export default function WebketMonsterOverlay() {
             bottom: "20px",
             right: "20px",
             zIndex: 9999998,
-            pointerEvents: "none",
+            pointerEvents: "auto",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -517,6 +663,39 @@ export default function WebketMonsterOverlay() {
             <span>{activeMonsterInfo.name}</span>
           </div>
           <div ref={activeContainerRef} />
+        </div>
+      )}
+
+      {activeEffectVideoUrl && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            zIndex: 9999999,
+            pointerEvents: "none",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            background: "transparent"
+          }}
+        >
+          <video
+            src={activeEffectVideoUrl}
+            autoPlay
+            playsInline
+            muted
+            onEnded={() => setActiveEffectVideoUrl(null)}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              mixBlendMode: "screen",
+              pointerEvents: "none"
+            }}
+          />
         </div>
       )}
     </>
