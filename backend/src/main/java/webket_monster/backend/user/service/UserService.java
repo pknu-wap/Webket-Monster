@@ -37,8 +37,8 @@ public class UserService {
         return new MyInfoResponseDto(
                 user.getId(),
                 user.getNickname(),
-                user.getEvolutionStoneCount(),
-                user.getExpPotionCount(),
+                user.getEvolutionStones(),
+                user.getExpPotions(),
                 monsters
         );
     }

@@ -3,7 +3,6 @@ package webket_monster.backend.sitevisit.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import webket_monster.backend.quest.service.QuestService;
 import webket_monster.backend.sitevisit.domain.UserSiteVisit;
 import webket_monster.backend.sitevisit.dto.SiteVisitRequestDto;
 import webket_monster.backend.sitevisit.dto.SiteVisitResponseDto;
@@ -17,8 +16,11 @@ public class SiteVisitService {
 
     private final UserRepository userRepository;
     private final UserSiteVisitRepository userSiteVisitRepository;
-    private final QuestService questService;
 
+    /**
+     * 사이트 방문 기록 저장.
+     * 퀘스트 진행도 갱신은 /users/{userId}/sync-activity 엔드포인트(QuestService.syncActivity)를 통해 처리합니다.
+     */
     @Transactional
     public SiteVisitResponseDto recordVisit(Long userId, SiteVisitRequestDto requestDto) {
         User user = userRepository.findById(userId)
@@ -33,9 +35,6 @@ public class SiteVisitService {
         siteVisit.increaseVisitCount();
 
         UserSiteVisit savedSiteVisit = userSiteVisitRepository.save(siteVisit);
-
-        // 사이트 방문 관련 퀘스트 진행도 갱신
-        questService.updateSiteVisitQuests(userId);
 
         boolean action1Triggered = savedSiteVisit.isAction1Triggered();
 
