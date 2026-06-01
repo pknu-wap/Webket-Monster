@@ -42,6 +42,20 @@ export default function IndexPopup() {
     return () => clearInterval(interval);
   }, []);
 
+  // content.tsx에서 먹이주기 발생 시 인벤토리 실시간 반영
+  useEffect(() => {
+    const storage = new Storage();
+    const unwatch = storage.watch({
+      "inventory": async () => {
+        setInventory(await monsterService.getInventory());
+      },
+      "userInfo": async () => {
+        setUserInfo(await monsterService.getUserInfo());
+      }
+    });
+    return () => { unwatch(); };
+  }, []);
+
   const handleSetActive = async (caughtMonsterId: string) => {
     await monsterService.setActiveMonster(caughtMonsterId);
     await loadData();

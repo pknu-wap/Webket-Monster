@@ -273,7 +273,7 @@ public class QuestService {
         if (host.contains("linkedin.com")) return "linkedin.com";
         if (host.contains("namu.wiki")) return "namu.wiki";
         if (host.contains("chatgpt.com") || host.contains("openai.com")) return "chatgpt.com";
-        if (host.contains("grok.com") || host.contains("x.com/i/grok")) return "grok.com";
+        if (host.contains("grok.com") || host.equals("x.com")) return "grok.com";
         if (host.contains("claude.ai")) return "claude.ai";
         if (host.contains("perplexity.ai")) return "perplexity.ai";
         return null;

@@ -19,4 +19,6 @@ public class UserMonsterResponseDto {
     private String evolutionInfo;
     private String imageUrl;
     private boolean hasPendingEffect;
+    /** 진화 단계: 1=기본, 2=1단계 진화, 3=2단계(최종) 진화. monsterId % 3 기준 */
+    private int evolutionStage;
 }

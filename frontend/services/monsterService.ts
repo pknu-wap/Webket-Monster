@@ -685,65 +685,79 @@ export class BackendMonsterService implements IMonsterService {
       return { success: false, newLevel: cm.level, triggerAction2: false, message: "몬스터가 아직 배고프지 않습니다." };
     }
 
-    const monsters = await this.getMonsterList();
-    const monsterData = monsters.find(m => m.id === cm.monsterId);
-    if (!monsterData) {
-      return { success: false, newLevel: cm.level, triggerAction2: false, message: "몬스터 메타데이터를 찾을 수 없습니다." };
-    }
-
-    // Feeding logic: lastFedTime = Date.now(), exp += 2
-    cm.lastFedTime = Date.now();
-    cm.exp += 2;
-
     let newLevel = cm.level;
     let leveledUp = false;
+    let message = "먹이주기가 완료되었습니다. (+2 EXP)";
 
-    while (cm.level < 5) {
-      const requiredExp = getRequiredExpForLevel(cm.level);
-      if (cm.exp >= requiredExp) {
-        cm.exp -= requiredExp;
-        cm.level += 1;
-        newLevel = cm.level;
-        leveledUp = true;
+    // ── 1) 백엔드 /feed 호출 (EXP +2, hungryAt 갱신) ──
+    try {
+      const userMonsterId = parseInt(cm.id, 10);
+      const feedRes = await fetch(
+        `${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/user-monsters/${userMonsterId}/feed`,
+        {
+          method: "POST",
+          headers: { "X-User-Id": userId.toString() }
+        }
+      );
+      if (feedRes.ok) {
+        const feedData = await feedRes.json();
+        // 백엔드에서 내려준 level/exp로 갱신
+        newLevel = feedData.newLevel;
+        leveledUp = feedData.leveledUp;
+        message = feedData.message;
+
+        cm.level = feedData.newLevel;
+        cm.exp = feedData.newExp;
+        cm.lastFedTime = Date.now(); // 로컬 배고픔 체크용
       } else {
-        break;
+        // 백엔드 실패 시 로컬 폴백
+        cm.lastFedTime = Date.now();
+        cm.exp += 2;
+        if (cm.exp >= getRequiredExpForLevel(cm.level) && cm.level < 5) {
+          cm.exp -= getRequiredExpForLevel(cm.level);
+          cm.level += 1;
+          newLevel = cm.level;
+          leveledUp = true;
+          message = `레벨업! Lv.${newLevel}이 되었습니다! 🎉`;
+        }
       }
+    } catch (e) {
+      console.error("Backend feed failed, using local fallback:", e);
+      cm.lastFedTime = Date.now();
+      cm.exp += 2;
     }
 
-    if (cm.level >= 5) {
-      cm.exp = 0; // Cap EXP at Max Level
-    }
-
-    // Track total feeds globally/individually for Quest
-    let totalFeeds = await storage.get<number>("totalFeeds") || 0;
-    totalFeeds += 1;
-    await storage.set("totalFeeds", totalFeeds);
-
-    // Save inventory
+    // 로컬 인벤토리 저장
     await storage.set("inventory", inventory);
 
-    // Sync with backend (Post feeding activity)
-    let triggerAction2 = totalFeeds % 10 === 0;
+    // ── 2) 퀘스트용 feed 카운트 백엔드 sync ──
+    let triggerAction2 = false;
     try {
-       const res = await fetch(`${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/users/${userId}/sync-activity`, {
+      const syncRes = await fetch(
+        `${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/users/${userId}/sync-activity`,
+        {
           method: "POST",
           headers: {
-             "Content-Type": "application/json",
-             "X-User-Id": userId.toString()
+            "Content-Type": "application/json",
+            "X-User-Id": userId.toString()
           },
-          body: JSON.stringify({
-             feedIncrement: 1
-          })
-       });
-       if (res.ok) {
-          const data = await res.json();
-          triggerAction2 = data.triggerAction2;
-       }
+          body: JSON.stringify({ feedIncrement: 1 })
+        }
+      );
+      if (syncRes.ok) {
+        const syncData = await syncRes.json();
+        triggerAction2 = syncData.triggerAction2;
+      }
     } catch (e) {
-       console.error("Failed to sync feeding activity to backend:", e);
+      console.error("Failed to sync feeding activity to backend:", e);
+      // 로컬 폴백
+      let totalFeeds = await storage.get<number>("totalFeeds") || 0;
+      totalFeeds += 1;
+      await storage.set("totalFeeds", totalFeeds);
+      triggerAction2 = totalFeeds % 10 === 0;
     }
 
-    // Sync with achievements and daily quests
+    // ── 3) 퀘스트 달성 체크 ──
     try {
       const { questService } = await import("./questService");
       await questService.syncAchievements();
@@ -751,17 +765,7 @@ export class BackendMonsterService implements IMonsterService {
       console.error("Failed to sync quests on feed:", e);
     }
 
-    let message = `몬스터에게 먹이를 주었습니다! 경험치 +2 올랐습니다.`;
-    if (leveledUp) {
-      message += ` 레벨업하여 Lv.${newLevel}이 되었습니다! 🎉`;
-    }
-
-    return {
-      success: true,
-      newLevel,
-      triggerAction2,
-      message
-    };
+    return { success: true, newLevel, triggerAction2, message };
   }
 
   async castEffect(caughtMonsterId: string): Promise<{ success: boolean; message: string }> {

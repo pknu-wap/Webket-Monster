@@ -160,14 +160,28 @@ public class UserMonsterService {
     public MonsterFeedResponseDto feedMonster(Long userMonsterId) {
         UserMonster userMonster = findUserMonster(userMonsterId);
 
+        int levelBefore = userMonster.getLevel();
+
+        // 먹이주기: EXP +2 추가
+        userMonster.addExp(2);
+
         LocalDateTime nextHungryAt = LocalDateTime.now().plusHours(3);
         userMonster.updateHungryAt(nextHungryAt);
         userMonsterRepository.save(userMonster);
 
+        boolean leveledUp = userMonster.getLevel() > levelBefore;
+        String msg = leveledUp
+                ? "레벨업! Lv." + userMonster.getLevel() + "이 되었습니다! 🎉"
+                : "먹이주기가 완료되었습니다. (+2 EXP)";
+
         return new MonsterFeedResponseDto(
                 userMonster.getId(),
                 nextHungryAt,
-                "먹이주기가 완료되었습니다."
+                msg,
+                userMonster.getLevel(),
+                userMonster.getExp(),
+                userMonster.getRequiredExpForNextLevel(),
+                leveledUp
         );
     }
 
@@ -247,6 +261,9 @@ public class UserMonsterService {
                 ? "최종 진화 몬스터입니다."
                 : "레벨 " + m.getEvolutionRequiredLevel() + "에 진화 가능합니다.";
 
+        // monsterId: 1,4,7...→stage1 / 2,5,8...→stage2 / 3,6,9...→stage3
+        int evolutionStage = (int) (((m.getId() - 1) % 3) + 1);
+
         return new UserMonsterResponseDto(
                 um.getId(),
                 m.getId(),
@@ -257,7 +274,8 @@ public class UserMonsterService {
                 um.getRequiredExpForNextLevel(),
                 evolutionInfo,
                 m.getImageUrl(),
-                um.getHasPendingEffect()
+                um.getHasPendingEffect(),
+                evolutionStage
         );
     }
 }
