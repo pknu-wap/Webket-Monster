@@ -17,6 +17,13 @@ public class UserMonsterController {
         return ResponseEntity.ok(userMonsterService.getUserMonsterInfo(userMonsterId));
     }
 
+    /** 프론트 getInventory()가 사용하는 엔드포인트: 유저의 보유 몬스터 전체 목록 */
+    @GetMapping("/user-monsters/user/{userId}")
+    public ResponseEntity<java.util.List<UserMonsterResponseDto>> getUserInventory(
+            @PathVariable Long userId) {
+        return ResponseEntity.ok(userMonsterService.getUserInventory(userId));
+    }
+
     @PostMapping("/user-monsters/{userMonsterId}/levelup")
     public ResponseEntity<LevelUpResponseDto> levelUpMonster(@PathVariable Long userMonsterId) {
         return ResponseEntity.ok(userMonsterService.levelUpMonster(userMonsterId));

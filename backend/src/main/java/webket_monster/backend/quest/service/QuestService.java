@@ -60,6 +60,13 @@ public class QuestService {
                         return userQuestRepository.save(newUq);
                     });
 
+            // 일일 퀘스트: 날짜가 바뀌면 자동 초기화
+            if ("daily".equals(quest.getType())) {
+                if (uq.resetIfDailyExpired()) {
+                    userQuestRepository.save(uq);
+                }
+            }
+
             int calculatedCount = calculateQuestProgress(quest.getId(), user, caughtMonsters, visitedDomains, visitMap);
 
             uq.updateProgress(calculatedCount, quest.getTargetCount());

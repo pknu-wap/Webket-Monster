@@ -576,11 +576,16 @@ export class BackendMonsterService implements IMonsterService {
        await this.getInventory();
 
        const monsters = await this.getMonsterList();
-       const monsterData = monsters.find(m => m.id === caughtMonsterId);
+       // caughtMonsterId here is the userMonsterId (DB instance ID), find monster by monsterId
+       const inventory = await storage.get<Inventory>("inventory");
+       const cm = inventory?.caughtMonsters?.find((m: any) => m.id === caughtMonsterId);
+       const monsterData = cm ? monsters.find(m => m.id === cm.monsterId) : null;
        const name = monsterData?.name || "몬스터";
+
+       // Backend DTO field: currentLevel (not data.level)
        let msg = `EXP 물약을 사용했습니다! (+100 EXP) 🧪`;
-       if (data.level) {
-          msg = `${name}(이)가 레벨업하여 Lv.${data.level}(이)가 되었습니다! 🎉`;
+       if (data.currentLevel) {
+          msg = `${name}(이)가 레벨업하여 Lv.${data.currentLevel}(이)가 되었습니다! 🎉`;
        }
 
        // Sync achievements
@@ -591,7 +596,7 @@ export class BackendMonsterService implements IMonsterService {
          console.error("Failed to sync achievements after potion use:", e);
        }
 
-       return { success: true, newLevel: data.level, message: msg };
+       return { success: true, newLevel: data.currentLevel, message: msg };
     } catch (e) {
        console.error("Backend useExpPotion failed:", e);
        return { success: false, message: "백엔드 연결에 실패했습니다." };

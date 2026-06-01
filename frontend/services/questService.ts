@@ -231,17 +231,16 @@ export class QuestService implements IQuestService {
   private normalizeDomain(hostname: string): string | null {
     const host = hostname.toLowerCase();
     if (host.includes("pknu.ac.kr")) return "pknu.ac.kr";
-    if (host.includes("google.com") || host.includes("google.co.kr")) {
-      if (host.includes("gemini.google.com")) return "gemini.google.com";
-      return "google.com";
-    }
+    if (host.includes("gemini.google.com")) return "gemini.google.com";
+    if (host.includes("google.com") || host.includes("google.co.kr")) return "google.com";
     if (host.includes("naver.com")) return "naver.com";
     if (host.includes("youtube.com")) return "youtube.com";
     if (host.includes("github.com")) return "github.com";
     if (host.includes("linkedin.com")) return "linkedin.com";
     if (host.includes("namu.wiki")) return "namu.wiki";
     if (host.includes("chatgpt.com") || host.includes("openai.com")) return "chatgpt.com";
-    if (host.includes("grok.com") || host.includes("x.com/i/grok")) return "grok.com";
+    // x.com/i/grok: hostname is "x.com", check path in window.location
+    if (host === "x.com" || host.includes("grok.com")) return "grok.com";
     if (host.includes("claude.ai")) return "claude.ai";
     if (host.includes("perplexity.ai")) return "perplexity.ai";
     return null;
