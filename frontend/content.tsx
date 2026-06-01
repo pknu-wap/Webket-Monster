@@ -696,8 +696,41 @@ export default function WebketMonsterOverlay() {
               pointerEvents: "none"
             }}
           />
+          {/* Skip 버튼 - 우측 하단, 클릭 가능 */}
+          <button
+            onClick={() => setActiveEffectVideoUrl(null)}
+            style={{
+              position: "absolute",
+              bottom: "32px",
+              right: "32px",
+              pointerEvents: "auto",
+              background: "rgba(0, 0, 0, 0.55)",
+              color: "rgba(255, 255, 255, 0.9)",
+              border: "1.5px solid rgba(255, 255, 255, 0.35)",
+              borderRadius: "20px",
+              padding: "7px 20px",
+              fontSize: "13px",
+              fontWeight: "600",
+              letterSpacing: "0.5px",
+              cursor: "pointer",
+              backdropFilter: "blur(6px)",
+              transition: "background 0.2s, transform 0.15s",
+              userSelect: "none"
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.18)";
+              (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.05)";
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLButtonElement).style.background = "rgba(0,0,0,0.55)";
+              (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
+            }}
+          >
+            Skip ▶▶
+          </button>
         </div>
       )}
+
     </>
   );
 }
