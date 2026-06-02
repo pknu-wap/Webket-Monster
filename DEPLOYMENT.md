@@ -8,8 +8,6 @@ Webket-Monster 프로젝트는 **Spring Boot 백엔드**와 **Plasmo (React) 크
 
 ```text
 Webket-Monster/
-├── .github/workflows/
-│   └── deploy.yml          # GitHub Actions CI/CD 워크플로우 (자동 빌드 및 크롬 익스텐션 패키징)
 ├── backend/
 │   ├── Dockerfile          # 백엔드 애플리케이션 Docker 이미지 빌드 파일
 │   ├── docker-compose.yml  # 백엔드 + PostgreSQL 컨테이너 구성
@@ -98,18 +96,3 @@ npm run build:zip
 실행 결과물:
 - 백엔드: `backend/build/libs/backend-0.0.1-SNAPSHOT.jar`
 - 프론트엔드: `frontend/build/chrome-mv3-prod.zip`
-
----
-
-## 🤖 4. GitHub Actions CI/CD (배포 자동화)
-
-GitHub에 소스 코드를 Push 하면 자동으로 검증 및 빌드가 완료되어 즉시 배포 가능한 형태로 준비됩니다.
-
-### 작동 방식:
-1. `main`, `develop`, `feature/**` 브라우저에 코드가 **Push** 되거나 **Pull Request**가 생성되면 트리거됩니다.
-2. **백엔드 Job**: JDK 17 설정 후 Gradle 빌드 및 에러 검증을 수행하고 `jar` 파일을 빌드 아티팩트로 보관합니다.
-3. **프론트엔드 Job**: Node.js 의존성 설치 후 `npm run build:zip`을 실행하여 프로덕션 연동 주소와 함께 익스텐션을 빌드하고, 최종 생성된 **`chrome-mv3-prod.zip`** 패키지 파일을 GitHub Actions Artifact로 업로드합니다.
-
-### API 서버 주소 커스텀 방법:
-배포할 때 익스텐션의 API 서버 주소를 실시간으로 제어하고 싶다면 GitHub Repository의 **Settings -> Secrets and variables -> Actions**에 `PLASMO_PUBLIC_API_URL` 환경 변수를 추가하세요.
-- 등록되지 않은 경우 기본값인 `.env.production`에 작성된 `http://3.106.199.213:8080/api`로 빌드됩니다.
