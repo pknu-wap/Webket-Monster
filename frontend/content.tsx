@@ -23,9 +23,76 @@ import { generateParticleUpdatePolyfill } from "pixi.js/lib/unsafe-eval/particle
 if (PIXI.ParticleBuffer) (PIXI.ParticleBuffer as any).prototype.generateParticleUpdate = generateParticleUpdatePolyfill;
 
 import { monsterService, Monster, getEvolvedMonsterData } from "./services/monsterService";
+import { questService } from "./services/questService";
 
 export const config: PlasmoCSConfig = {
-  matches: ["*://*.pknu.ac.kr/*"]
+  matches: [
+    "*://*.pknu.ac.kr/*",
+    "*://*.google.com/*",
+    "*://*.google.co.kr/*",
+    "*://*.naver.com/*",
+    "*://*.youtube.com/*",
+    "*://*.github.com/*",
+    "*://*.linkedin.com/*",
+    "*://*.namu.wiki/*",
+    "*://*.chatgpt.com/*",
+    "*://*.openai.com/*",
+    "*://*.grok.com/*",
+    "*://*.x.com/i/grok/*",
+    "*://*.claude.ai/*",
+    "*://*.perplexity.ai/*"
+  ]
+};
+
+const getTargetMonsterIdForDomain = (hostname: string): string | null => {
+  if (hostname.includes("pknu.ac.kr")) return "1";
+  if (hostname.includes("google.com") || hostname.includes("google.co.kr")) return "4";
+  if (hostname.includes("naver.com")) return "7";
+  if (hostname.includes("youtube.com")) return "10";
+  if (hostname.includes("github.com")) return "13";
+  if (hostname.includes("linkedin.com")) return "16";
+  if (hostname.includes("namu.wiki")) return "19";
+  if (hostname.includes("chatgpt.com") || hostname.includes("openai.com")) return "22";
+  return null;
+};
+
+// Chroma Key green screen removal helper
+const loadImageWithChromaKey = (url: string): Promise<PIXI.Texture> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = url;
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(PIXI.Texture.from(img));
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+
+        // Green chromakey detection: green is dominant
+        if (g > r * 1.3 && g > b * 1.3 && g > 60) {
+          data[i + 3] = 0; // Make transparent
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+
+      // Create texture from the keyed canvas
+      const texture = PIXI.Texture.from(canvas);
+      resolve(texture);
+    };
+    img.onerror = (e) => reject(e);
+  });
 };
 
 export default function WebketMonsterOverlay() {
@@ -34,8 +101,15 @@ export default function WebketMonsterOverlay() {
   const [spawnedMonster, setSpawnedMonster] = useState<Monster | null>(null);
   const [catchMessage, setCatchMessage] = useState<string | null>(null);
   const [pos, setPos] = useState({ x: -200, y: -200 }); // Start off-screen
-  const [activeMonsterInfo, setActiveMonsterInfo] = useState<{ id: string, name: string, imageUrl: string } | null>(null);
+  const [activeMonsterInfo, setActiveMonsterInfo] = useState<{ 
+    id: string; 
+    name: string; 
+    imageUrl: string;
+    spritesheetUrl1?: string;
+    spritesheetUrl2?: string;
+  } | null>(null);
   const [activeMonsterLevel, setActiveMonsterLevel] = useState<number>(0);
+  const [activeEffectVideoUrl, setActiveEffectVideoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const storage = new Storage();
@@ -49,11 +123,17 @@ export default function WebketMonsterOverlay() {
           const monsters = await monsterService.getMonsterList();
           const mData = monsters.find(m => m.id === activeCm.monsterId);
           if (mData) {
-            const evolvedInfo = getEvolvedMonsterData(mData, activeCm.level);
+            const evolvedInfo = getEvolvedMonsterData(mData, activeCm.evolutionStage || 1);
             setActiveMonsterInfo(prev => 
-              (prev?.id === mData.id && prev?.imageUrl === evolvedInfo.imageUrl) 
+              (prev?.id === mData.id && prev?.imageUrl === evolvedInfo.imageUrl && prev?.spritesheetUrl1 === evolvedInfo.spritesheetUrl1) 
                 ? prev 
-                : { id: mData.id, name: evolvedInfo.name, imageUrl: evolvedInfo.imageUrl }
+                : { 
+                    id: mData.id, 
+                    name: evolvedInfo.name, 
+                    imageUrl: evolvedInfo.imageUrl,
+                    spritesheetUrl1: evolvedInfo.spritesheetUrl1,
+                    spritesheetUrl2: evolvedInfo.spritesheetUrl2
+                  }
             );
             setActiveMonsterLevel(activeCm.level);
           } else {
@@ -80,16 +160,98 @@ export default function WebketMonsterOverlay() {
   }, []);
 
   useEffect(() => {
+    if (!activeMonsterInfo) return;
+
+    let pollingInterval: ReturnType<typeof setInterval>;
+
+    const pollPendingEffect = async () => {
+      try {
+        const userInfo = await monsterService.getUserInfo();
+        if (!userInfo.activeMonsterId) return;
+
+        const inventory = await monsterService.getInventory();
+        const activeCm = inventory.caughtMonsters.find(cm => cm.id === userInfo.activeMonsterId);
+
+        if (activeCm && activeCm.hasPendingEffect) {
+          const videoUrl = "https://webket-monster-monster-assets.s3.ap-southeast-2.amazonaws.com/download/grok-video-7d836938-dcc6-47c2-bcc5-a786eeaf44cb";
+          setActiveEffectVideoUrl(videoUrl);
+
+          await monsterService.clearEffect(activeCm.id);
+        }
+      } catch (e) {
+        console.error("Polling for monster effect failed:", e);
+      }
+    };
+
+    pollingInterval = setInterval(pollPendingEffect, 3000);
+
+    return () => {
+      clearInterval(pollingInterval);
+    };
+  }, [activeMonsterInfo]);
+
+  useEffect(() => {
+    const storage = new Storage();
+    const unwatch = storage.watch({
+      "activeMonsterTrigger": (change) => {
+        if (change.newValue === "effect") {
+          const videoUrl = "https://webket-monster-monster-assets.s3.ap-southeast-2.amazonaws.com/download/grok-video-7d836938-dcc6-47c2-bcc5-a786eeaf44cb";
+          setActiveEffectVideoUrl(videoUrl);
+          storage.set("activeMonsterTrigger", null);
+        }
+      }
+    });
+    return () => {
+      unwatch();
+    };
+  }, []);
+
+  useEffect(() => {
+    // Record page visit quest progress across all configured sites
+    questService.recordPageVisit(window.location.hostname).catch(e => console.error("Quest update error:", e));
+  }, []);
+
+  useEffect(() => {
+    if (!activeMonsterInfo) return;
+
+    const id = parseInt(activeMonsterInfo.id.replace(/[^0-9]/g, "")) || 1;
+    const hostname = window.location.hostname.toLowerCase();
+    
+    let isHomeDomain = false;
+    if (id >= 1 && id <= 3) isHomeDomain = hostname.includes("pknu.ac.kr");
+    else if (id >= 4 && id <= 6) isHomeDomain = hostname.includes("google.com") || hostname.includes("google.co.kr");
+    else if (id >= 7 && id <= 9) isHomeDomain = hostname.includes("naver.com");
+    else if (id >= 10 && id <= 12) isHomeDomain = hostname.includes("youtube.com");
+    else if (id >= 13 && id <= 15) isHomeDomain = hostname.includes("github.com");
+    else if (id >= 16 && id <= 18) isHomeDomain = hostname.includes("linkedin.com");
+    else if (id >= 19 && id <= 21) isHomeDomain = hostname.includes("namu.wiki");
+    else if (id >= 22 && id <= 24) isHomeDomain = hostname.includes("chatgpt.com") || hostname.includes("openai.com");
+
+    if (isHomeDomain) {
+      const interval = setInterval(async () => {
+        const storage = new Storage();
+        await storage.set("activeMonsterTrigger", "action1");
+      }, 10 * 60 * 1000); // 10 minutes
+
+      return () => clearInterval(interval);
+    }
+  }, [activeMonsterInfo]);
+
+  useEffect(() => {
     // Determine if a monster should spawn on page load
     const rollForSpawn = async () => {
-      if (!window.location.hostname.includes("pknu.ac.kr")) return;
+      const hostname = window.location.hostname;
+      const targetMonsterId = getTargetMonsterIdForDomain(hostname);
+      if (!targetMonsterId) return;
       
       const userInfo = await monsterService.getUserInfo();
       if (userInfo.spawnWildMonsters === false) return;
       
       const monsters = await monsterService.getMonsterList();
-      for (const monster of monsters.sort(() => Math.random() - 0.5)) {
-        if (Math.random() < monster.probability) {
+      const monster = monsters.find(m => m.id === targetMonsterId);
+      if (monster) {
+        // 20% probability of spawn on respective site
+        if (Math.random() < 0.2) {
           setSpawnedMonster(monster);
           
           // Set initial random position within window bounds
@@ -97,7 +259,6 @@ export default function WebketMonsterOverlay() {
             x: Math.max(10, Math.floor(Math.random() * (window.innerWidth - 150))),
             y: Math.max(10, Math.floor(Math.random() * (window.innerHeight - 150)))
           });
-          break;
         }
       }
     };
@@ -130,8 +291,30 @@ export default function WebketMonsterOverlay() {
       containerRef.current.appendChild(app.canvas);
 
       try {
-        const texture = await PIXI.Assets.load(spawnedMonster.imageUrl);
-        const sprite = new PIXI.Sprite(texture);
+        const texture = await loadImageWithChromaKey(spawnedMonster.spritesheetUrl1 || spawnedMonster.imageUrl);
+        
+        let idleFrames: PIXI.Texture[] = [texture];
+        let walkFrames: PIXI.Texture[] = [texture];
+        let hasSpritesheet = !!spawnedMonster.spritesheetUrl1;
+
+        if (hasSpritesheet) {
+          const spriteSheetColumns = 4;
+          const spriteSheetRows = 4;
+          const frameWidth = texture.width / spriteSheetColumns;
+          const frameHeight = texture.height / spriteSheetRows;
+          
+          idleFrames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
+            source: texture.source,
+            frame: new PIXI.Rectangle(i * frameWidth, 0 * frameHeight, frameWidth, frameHeight)
+          }));
+          
+          walkFrames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
+            source: texture.source,
+            frame: new PIXI.Rectangle(i * frameWidth, 1 * frameHeight, frameWidth, frameHeight)
+          }));
+        }
+
+        const sprite = new PIXI.Sprite(idleFrames[0]);
         
         sprite.width = 100;
         sprite.height = 100;
@@ -142,20 +325,23 @@ export default function WebketMonsterOverlay() {
         sprite.eventMode = 'static';
         sprite.cursor = 'pointer';
         
-        // Internal floating animation
+        // Internal floating and walking animation
         let elapsed = 0;
+        let animationElapsed = 0;
         app.ticker.add((ticker) => {
           if (isCaught) return;
           elapsed += ticker.deltaTime;
-          sprite.y = (app!.screen.height / 2) + Math.sin(elapsed / 10.0) * 10;
+          animationElapsed += ticker.deltaTime;
 
           // Move the DOM element towards the target
           const dx = targetX - currentX;
           const dy = targetY - currentY;
+          let isMoving = false;
           
           if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
             currentX += dx * 0.01 * ticker.deltaTime; // speed
             currentY += dy * 0.01 * ticker.deltaTime;
+            isMoving = true;
             
             // Flip sprite depending on direction
             if (dx > 0) sprite.scale.x = Math.abs(sprite.scale.x) * -1; // Face right
@@ -163,6 +349,14 @@ export default function WebketMonsterOverlay() {
 
             setPos({ x: currentX, y: currentY });
           }
+
+          if (hasSpritesheet) {
+            const currentFrames = isMoving ? walkFrames : idleFrames;
+            const frameIndex = Math.floor(animationElapsed / 15) % currentFrames.length;
+            sprite.texture = currentFrames[frameIndex];
+          }
+
+          sprite.y = (app!.screen.height / 2) + Math.sin(elapsed / 10.0) * 10;
         });
 
         // Pick a new target position every 2-4 seconds
@@ -215,7 +409,9 @@ export default function WebketMonsterOverlay() {
     if (!activeMonsterInfo || !activeContainerRef.current) return;
 
     let app = new PIXI.Application();
-    let elapsed = 0;
+    let isDestroyed = false;
+    const storage = new Storage();
+    let unwatch: (() => void) | null = null;
 
     const initActivePixi = async () => {
       await app.init({
@@ -224,21 +420,190 @@ export default function WebketMonsterOverlay() {
         backgroundAlpha: 0,
       });
       
-      if (!activeContainerRef.current) return;
+      if (isDestroyed || !activeContainerRef.current) return;
       activeContainerRef.current.innerHTML = "";
       activeContainerRef.current.appendChild(app.canvas);
 
       try {
-        const texture = await PIXI.Assets.load(activeMonsterInfo.imageUrl);
-        const sprite = new PIXI.Sprite(texture);
+        // Load Sheet 1
+        const texture1 = await loadImageWithChromaKey(activeMonsterInfo.spritesheetUrl1 || activeMonsterInfo.imageUrl);
+        const spriteSheetColumns = 4;
+        const spriteSheetRows = 4;
+        const frameWidth1 = texture1.width / spriteSheetColumns;
+        const frameHeight1 = texture1.height / spriteSheetRows;
+        
+        let idleFrames = [texture1];
+        let walkFrames = [texture1];
+        let happyFrames = [texture1];
+        let hungryFrames = [texture1];
+        let hasSpritesheet = !!activeMonsterInfo.spritesheetUrl1;
+
+        if (hasSpritesheet) {
+          // Parse Sheet 1 rows
+          idleFrames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
+            source: texture1.source,
+            frame: new PIXI.Rectangle(i * frameWidth1, 0 * frameHeight1, frameWidth1, frameHeight1)
+          }));
+          walkFrames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
+            source: texture1.source,
+            frame: new PIXI.Rectangle(i * frameWidth1, 1 * frameHeight1, frameWidth1, frameHeight1)
+          }));
+          happyFrames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
+            source: texture1.source,
+            frame: new PIXI.Rectangle(i * frameWidth1, 2 * frameHeight1, frameWidth1, frameHeight1)
+          }));
+          hungryFrames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
+            source: texture1.source,
+            frame: new PIXI.Rectangle(i * frameWidth1, 3 * frameHeight1, frameWidth1, frameHeight1)
+          }));
+        }
+
+        // Load Sheet 2 (Actions 1 & 2) if stage >= 2 (Level >= 3) and sheet 2 is present
+        let action1Frames = happyFrames;
+        let action2Frames = happyFrames;
+        let hasSheet2 = !!activeMonsterInfo.spritesheetUrl2;
+
+        if (hasSheet2 && activeMonsterLevel >= 3) {
+          try {
+            const texture2 = await loadImageWithChromaKey(activeMonsterInfo.spritesheetUrl2!);
+            const frameWidth2 = texture2.width / spriteSheetColumns;
+            const frameHeight2 = texture2.height / spriteSheetRows;
+            
+            action1Frames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
+              source: texture2.source,
+              frame: new PIXI.Rectangle(i * frameWidth2, 0 * frameHeight2, frameWidth2, frameHeight2)
+            }));
+            
+            if (activeMonsterLevel >= 4) {
+              action2Frames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
+                source: texture2.source,
+                frame: new PIXI.Rectangle(i * frameWidth2, 1 * frameHeight2, frameWidth2, frameHeight2)
+              }));
+            }
+          } catch (e) {
+            console.error("Failed to load spritesheet 2:", e);
+          }
+        }
+
+        const sprite = new PIXI.Sprite(idleFrames[0]);
         
         sprite.width = 100;
         sprite.height = 100;
         sprite.anchor.set(0.5);
         sprite.x = app.screen.width / 2;
         sprite.y = app.screen.height / 2;
+        
+        sprite.eventMode = 'static';
+        sprite.cursor = 'pointer';
+        
+        sprite.on('pointerdown', async () => {
+          const isHungry = await monsterService.isActiveMonsterHungry();
+          if (isHungry) {
+            const feedResult = await monsterService.feedActiveMonster();
+            setAnimationState("happy");
+            setActiveMonsterLevel(feedResult.newLevel);
+            
+            const storage = new Storage();
+            await storage.set("userInfo", await monsterService.getUserInfo());
+            
+            if (feedResult.triggerAction2) {
+              await storage.set("activeMonsterTrigger", "action2");
+            }
+          }
+        });
 
         app.stage.addChild(sprite);
+
+        // State machine variables
+        type MonsterState = "idle" | "walk" | "happy" | "hungry" | "action1" | "action2";
+        let currentState: MonsterState = "idle";
+        let elapsed = 0;
+        let animationElapsed = 0;
+        let loopCounter = 0;
+
+        const setAnimationState = (newState: MonsterState) => {
+          if (currentState === newState) return;
+          currentState = newState;
+          animationElapsed = 0;
+          loopCounter = 0;
+        };
+
+        // Initial hunger check
+        const initHunger = async () => {
+          const isHungry = await monsterService.isActiveMonsterHungry();
+          if (isHungry) {
+            setAnimationState("hungry");
+          }
+        };
+        initHunger();
+
+        // App animation ticker
+        app.ticker.add((ticker) => {
+          elapsed += ticker.deltaTime;
+          animationElapsed += ticker.deltaTime;
+
+          // Compute frame out of 4
+          const subFrameIndex = Math.floor(animationElapsed / 15) % 4;
+
+          // Loop tracking
+          if (Math.floor(animationElapsed / 15) >= 4) {
+            animationElapsed = 0;
+            loopCounter += 1;
+
+            // Revert temporary states after 3 loops
+            if (currentState === "happy" || currentState === "action1" || currentState === "action2") {
+              if (loopCounter >= 3) {
+                setAnimationState("idle");
+              }
+            }
+          }
+
+          if (hasSpritesheet) {
+            let currentFrames = idleFrames;
+            if (currentState === "walk") currentFrames = walkFrames;
+            else if (currentState === "happy") currentFrames = happyFrames;
+            else if (currentState === "hungry") currentFrames = hungryFrames;
+            else if (currentState === "action1") currentFrames = action1Frames;
+            else if (currentState === "action2") currentFrames = action2Frames;
+
+            const frame = currentFrames[subFrameIndex] || currentFrames[0];
+            sprite.texture = frame;
+          }
+
+          // Floating animation
+          sprite.y = (app.screen.height / 2) + Math.sin(elapsed / 10.0) * 10;
+        });
+
+        // Register storage watcher to trigger states
+        const handleTrigger = (trigger: string) => {
+          if (trigger === "hungry") {
+            setAnimationState("hungry");
+          } else if (trigger === "feed") {
+            if (currentState === "hungry") {
+              setAnimationState("happy");
+            } else {
+              setAnimationState("happy");
+            }
+          } else if (trigger === "action1") {
+            if (activeMonsterLevel >= 3) {
+              setAnimationState("action1");
+            }
+          } else if (trigger === "action2") {
+            if (activeMonsterLevel >= 4) {
+              setAnimationState("action2");
+            }
+          }
+        };
+
+        unwatch = storage.watch({
+          "activeMonsterTrigger": (change) => {
+            if (change.newValue) {
+              handleTrigger(change.newValue);
+              storage.set("activeMonsterTrigger", null);
+            }
+          }
+        });
+
       } catch (err) {
         console.error("Failed to load active monster texture:", err);
       }
@@ -247,9 +612,11 @@ export default function WebketMonsterOverlay() {
     initActivePixi();
 
     return () => {
+      isDestroyed = true;
+      if (unwatch) unwatch();
       if (app) app.destroy(true);
     };
-  }, [activeMonsterInfo]);
+  }, [activeMonsterInfo, activeMonsterLevel]);
 
   if (!spawnedMonster && !activeMonsterInfo) return null;
 
@@ -297,7 +664,7 @@ export default function WebketMonsterOverlay() {
             bottom: "20px",
             right: "20px",
             zIndex: 9999998,
-            pointerEvents: "none",
+            pointerEvents: "auto",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -324,6 +691,72 @@ export default function WebketMonsterOverlay() {
           <div ref={activeContainerRef} />
         </div>
       )}
+
+      {activeEffectVideoUrl && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            zIndex: 9999999,
+            pointerEvents: "none",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            background: "transparent"
+          }}
+        >
+          <video
+            src={activeEffectVideoUrl}
+            autoPlay
+            playsInline
+            muted
+            onEnded={() => setActiveEffectVideoUrl(null)}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              mixBlendMode: "screen",
+              pointerEvents: "none"
+            }}
+          />
+          {/* Skip 버튼 - 우측 하단, 클릭 가능 */}
+          <button
+            onClick={() => setActiveEffectVideoUrl(null)}
+            style={{
+              position: "absolute",
+              bottom: "32px",
+              right: "32px",
+              pointerEvents: "auto",
+              background: "rgba(0, 0, 0, 0.55)",
+              color: "rgba(255, 255, 255, 0.9)",
+              border: "1.5px solid rgba(255, 255, 255, 0.35)",
+              borderRadius: "20px",
+              padding: "7px 20px",
+              fontSize: "13px",
+              fontWeight: "600",
+              letterSpacing: "0.5px",
+              cursor: "pointer",
+              backdropFilter: "blur(6px)",
+              transition: "background 0.2s, transform 0.15s",
+              userSelect: "none"
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.18)";
+              (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.05)";
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLButtonElement).style.background = "rgba(0,0,0,0.55)";
+              (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
+            }}
+          >
+            Skip ▶▶
+          </button>
+        </div>
+      )}
+
     </>
   );
 }

@@ -1,36 +1,32 @@
 package webket_monster.backend.quest.dto;
 
-import lombok.Builder;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import webket_monster.backend.quest.domain.UserQuest;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
-@Builder
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class UserQuestResponseDto {
-
-    private Long questId;
+    private String id;
     private String title;
     private String description;
-    private String questType;
-    private int progress;
+    private String type; // "daily" or "achievement"
+    private String category;
     private int targetCount;
+    private int currentCount;
     private boolean completed;
-    private boolean rewarded;
-    private String rewardType;
-    private int rewardAmount;
+    private boolean claimed;
+    private RewardDto reward;
 
-    public static UserQuestResponseDto from(UserQuest userQuest) {
-        return UserQuestResponseDto.builder()
-                .questId(userQuest.getQuest().getId())
-                .title(userQuest.getQuest().getTitle())
-                .description(userQuest.getQuest().getDescription())
-                .questType(userQuest.getQuest().getQuestType().name())
-                .progress(userQuest.getProgress())
-                .targetCount(userQuest.getQuest().getTargetCount())
-                .completed(userQuest.isCompleted())
-                .rewarded(userQuest.isRewarded())
-                .rewardType(userQuest.getQuest().getRewardType().name())
-                .rewardAmount(userQuest.getQuest().getRewardAmount())
-                .build();
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class RewardDto {
+        private int expPotions;
+        private int evolutionStones;
     }
 }

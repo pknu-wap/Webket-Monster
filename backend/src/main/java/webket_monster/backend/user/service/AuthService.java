@@ -33,4 +33,19 @@ public class AuthService {
         LoginResponseDto.UserDto userDto = new LoginResponseDto.UserDto(user.getId(), user.getEmail());
         return new LoginResponseDto(dummyToken, userDto);
     }
+
+    @Transactional
+    public LoginResponseDto registerAnonymous() {
+        String anonymousEmail = "anonymous_" + java.util.UUID.randomUUID().toString() + "@webket.com";
+        String anonymousNickname = "Trainer_" + (int)(Math.random() * 9000 + 1000);
+        
+        User user = userRepository.save(User.builder()
+                .email(anonymousEmail)
+                .nickname(anonymousNickname)
+                .build());
+
+        String dummyToken = "dummy-jwt-token";
+        LoginResponseDto.UserDto userDto = new LoginResponseDto.UserDto(user.getId(), user.getEmail());
+        return new LoginResponseDto(dummyToken, userDto);
+    }
 }

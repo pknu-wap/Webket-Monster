@@ -1,34 +1,40 @@
 package webket_monster.backend.quest.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import webket_monster.backend.quest.dto.QuestResponseDto;
-import webket_monster.backend.quest.dto.QuestRewardResponseDto;
-import webket_monster.backend.quest.dto.UserQuestResponseDto;
+import java.util.List;
+import webket_monster.backend.quest.dto.*;
 import webket_monster.backend.quest.service.QuestService;
 
-import java.util.List;
-
 @RestController
+@RequestMapping("/users")
 @RequiredArgsConstructor
 public class QuestController {
 
     private final QuestService questService;
 
-    @GetMapping("/quests")
-    public List<QuestResponseDto> getAllQuests() {
-        return questService.getAllQuests();
+    @GetMapping("/{userId}/quests")
+    public ResponseEntity<List<UserQuestResponseDto>> getUserQuests(@PathVariable Long userId) {
+        return ResponseEntity.ok(questService.getUserQuests(userId));
     }
 
-    @GetMapping("/users/me/quests")
-    public List<UserQuestResponseDto> getMyQuests() {
-        Long userId = 1L; // TODO: 로그인 구현 후 인증 유저 ID로 교체
-        return questService.getMyQuests(userId);
+    @PostMapping("/{userId}/quests/{questId}/claim")
+    public ResponseEntity<QuestClaimRewardResponseDto> claimQuestReward(
+            @PathVariable Long userId,
+            @PathVariable String questId) {
+        return ResponseEntity.ok(questService.claimQuestReward(userId, questId));
     }
 
-    @PostMapping("/quests/{questId}/reward")
-    public QuestRewardResponseDto receiveReward(@PathVariable Long questId) {
-        Long userId = 1L; // TODO: 로그인 구현 후 인증 유저 ID로 교체
-        return questService.receiveReward(userId, questId);
+    @PostMapping("/{userId}/sync-activity")
+    public ResponseEntity<SyncActivityResponseDto> syncActivity(
+            @PathVariable Long userId,
+            @RequestBody SyncActivityRequestDto request) {
+        return ResponseEntity.ok(questService.syncActivity(userId, request));
+    }
+
+    @GetMapping("/{userId}/inventory")
+    public ResponseEntity<UserInventoryResponseDto> getUserInventory(@PathVariable Long userId) {
+        return ResponseEntity.ok(questService.getUserInventory(userId));
     }
 }
