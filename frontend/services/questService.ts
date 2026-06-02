@@ -218,7 +218,7 @@ export class QuestService implements IQuestService {
       if (res.ok) {
         const data = await res.json();
         if (data.triggerAction1) {
-          await storage.set("activeMonsterTrigger", "action1");
+          await storage.set("activeMonsterTrigger", "effect");
         }
       }
     } catch (e) {

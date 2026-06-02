@@ -212,6 +212,32 @@ export default function WebketMonsterOverlay() {
   }, []);
 
   useEffect(() => {
+    if (!activeMonsterInfo) return;
+
+    const id = parseInt(activeMonsterInfo.id.replace(/[^0-9]/g, "")) || 1;
+    const hostname = window.location.hostname.toLowerCase();
+    
+    let isHomeDomain = false;
+    if (id >= 1 && id <= 3) isHomeDomain = hostname.includes("pknu.ac.kr");
+    else if (id >= 4 && id <= 6) isHomeDomain = hostname.includes("google.com") || hostname.includes("google.co.kr");
+    else if (id >= 7 && id <= 9) isHomeDomain = hostname.includes("naver.com");
+    else if (id >= 10 && id <= 12) isHomeDomain = hostname.includes("youtube.com");
+    else if (id >= 13 && id <= 15) isHomeDomain = hostname.includes("github.com");
+    else if (id >= 16 && id <= 18) isHomeDomain = hostname.includes("linkedin.com");
+    else if (id >= 19 && id <= 21) isHomeDomain = hostname.includes("namu.wiki");
+    else if (id >= 22 && id <= 24) isHomeDomain = hostname.includes("chatgpt.com") || hostname.includes("openai.com");
+
+    if (isHomeDomain) {
+      const interval = setInterval(async () => {
+        const storage = new Storage();
+        await storage.set("activeMonsterTrigger", "action1");
+      }, 10 * 60 * 1000); // 10 minutes
+
+      return () => clearInterval(interval);
+    }
+  }, [activeMonsterInfo]);
+
+  useEffect(() => {
     // Determine if a monster should spawn on page load
     const rollForSpawn = async () => {
       const hostname = window.location.hostname;

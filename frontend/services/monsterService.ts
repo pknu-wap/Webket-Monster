@@ -754,7 +754,7 @@ export class BackendMonsterService implements IMonsterService {
       let totalFeeds = await storage.get<number>("totalFeeds") || 0;
       totalFeeds += 1;
       await storage.set("totalFeeds", totalFeeds);
-      triggerAction2 = totalFeeds % 10 === 0;
+      triggerAction2 = totalFeeds % 3 === 0;
     }
 
     // ── 3) 퀘스트 달성 체크 ──

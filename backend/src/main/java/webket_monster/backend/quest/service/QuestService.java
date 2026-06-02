@@ -137,7 +137,7 @@ public class QuestService {
         if (request.getFeedIncrement() > 0) {
             for (int i = 0; i < request.getFeedIncrement(); i++) {
                 user.incrementFeeds();
-                if (user.getTotalFeeds() % 10 == 0) {
+                if (user.getTotalFeeds() % 3 == 0) {
                     triggerAction2 = true;
                 }
             }
@@ -159,7 +159,7 @@ public class QuestService {
                 visit.incrementCount();
                 userDomainVisitRepository.save(visit);
 
-                // Action1 트리거: 활성 몬스터의 홈 도메인 10회 방문
+                // 홈 도메인 10회 방문 시 몬스터 이펙트 발동 (기존 액션1에서 이펙트로 변경)
                 List<UserMonster> activeMonsters = userMonsterRepository.findByUserId(userId).stream()
                         .filter(UserMonster::getIsActive)
                         .collect(Collectors.toList());
@@ -171,6 +171,8 @@ public class QuestService {
                         user.incrementActiveHomeVisits();
                         if (user.getActiveHomeVisits() >= 10) {
                             user.resetActiveHomeVisits();
+                            active.triggerEffect(); // DB hasPendingEffect = true
+                            userMonsterRepository.save(active);
                             triggerAction1 = true;
                         }
                     }

@@ -37,8 +37,14 @@ public class UserMonsterService {
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         Optional<UserMonster> existing = userMonsterRepository.findByUserId(userId).stream()
-                .filter(um -> um.getMonster().getId().equals(monster.getId()))
+                .filter(um -> {
+                    long umBaseId = ((um.getMonster().getId() - 1) / 3) * 3 + 1;
+                    long targetBaseId = ((monster.getId() - 1) / 3) * 3 + 1;
+                    return umBaseId == targetBaseId;
+                })
                 .findFirst();
+
+        long baseMonsterId = ((monster.getId() - 1) / 3) * 3 + 1;
 
         if (existing.isPresent()) {
             UserMonster um = existing.get();
@@ -46,10 +52,10 @@ public class UserMonsterService {
 
             return new CatchMonsterResponseDto(
                     "포획 성공! 경험치가 올랐습니다.",
-                    false,
-                    um.getExp(),
+                    true,
+                    5,
                     new CatchMonsterResponseDto.CurrentMonsterDto(
-                            monster.getId(),
+                            baseMonsterId,
                             um.getLevel(),
                             um.getExp()
                     )
@@ -71,7 +77,7 @@ public class UserMonsterService {
                 "새로운 몬스터를 포획했습니다!",
                 false,
                 50,
-                new CatchMonsterResponseDto.CurrentMonsterDto(monster.getId(), 1, 0)
+                new CatchMonsterResponseDto.CurrentMonsterDto(baseMonsterId, 1, 0)
         );
     }
 
@@ -263,10 +269,11 @@ public class UserMonsterService {
 
         // monsterId: 1,4,7...→stage1 / 2,5,8...→stage2 / 3,6,9...→stage3
         int evolutionStage = (int) (((m.getId() - 1) % 3) + 1);
+        long baseMonsterId = ((m.getId() - 1) / 3) * 3 + 1;
 
         return new UserMonsterResponseDto(
                 um.getId(),
-                m.getId(),
+                baseMonsterId,
                 m.getName(),
                 m.getCharacteristics(),
                 um.getLevel(),

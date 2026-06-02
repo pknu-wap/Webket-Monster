@@ -1,12 +1,13 @@
 {
   "name": "webket-monster",
   "displayName": "웹켓 몬스터 (Webket-Monster)",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "부경대학교 웹사이트에서 나타나는 귀여운 몬스터를 포획하고 장착하여 진화시키는 브라우저 펫 게임입니다.",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "plasmo dev",
-    "build": "plasmo build"
+    "build": "plasmo build",
+    "build:zip": "plasmo build --zip"
   },
   "keywords": [],
   "author": "",
@@ -23,6 +24,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "puppeteer": "^24.42.0",
+    "svgo": "^3.3.3",
     "typescript": "^6.0.3"
   }
 }
