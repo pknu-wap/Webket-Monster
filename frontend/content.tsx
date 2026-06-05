@@ -63,33 +63,7 @@ const loadImageWithChromaKey = (url: string): Promise<PIXI.Texture> => {
     img.crossOrigin = "anonymous";
     img.src = url;
     img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        resolve(PIXI.Texture.from(img));
-        return;
-      }
-      ctx.drawImage(img, 0, 0);
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imgData.data;
-
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-
-        // Green chromakey detection: green is dominant
-        if (g > r * 1.3 && g > b * 1.3 && g > 60) {
-          data[i + 3] = 0; // Make transparent
-        }
-      }
-      ctx.putImageData(imgData, 0, 0);
-
-      // Create texture from the keyed canvas
-      const texture = PIXI.Texture.from(canvas);
-      resolve(texture);
+      resolve(PIXI.Texture.from(img));
     };
     img.onerror = (e) => reject(e);
   });
@@ -265,8 +239,8 @@ export default function WebketMonsterOverlay() {
       const monsters = await monsterService.getMonsterList();
       const monster = monsters.find(m => m.id === targetMonsterId);
       if (monster) {
-        // 20% probability of spawn on respective site
-        if (Math.random() < 0.2) {
+        // 100% probability of spawn on respective site for testing
+        if (true) {
           setSpawnedMonster(monster);
           
           // Set initial random position within window bounds
@@ -481,8 +455,9 @@ export default function WebketMonsterOverlay() {
         if (hasSheet2 && activeMonsterLevel >= 3) {
           try {
             const texture2 = await loadImageWithChromaKey(activeMonsterInfo.spritesheetUrl2!);
+            const spriteSheet2Rows = 2;
             const frameWidth2 = texture2.width / spriteSheetColumns;
-            const frameHeight2 = texture2.height / spriteSheetRows;
+            const frameHeight2 = texture2.height / spriteSheet2Rows;
             
             action1Frames = Array.from({length: 4}, (_, i) => new PIXI.Texture({
               source: texture2.source,
