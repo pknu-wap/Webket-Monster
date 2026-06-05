@@ -145,7 +145,7 @@ public class QuestService {
 
         // 페이지 방문 처리
         if (request.getHostname() != null && !request.getHostname().trim().isEmpty()) {
-            String domain = normalizeDomain(request.getHostname());
+            String domain = normalizeDomain(request.getHostname(), request.getPathname());
             if (domain != null) {
                 UserDomainVisit visit = userDomainVisitRepository.findByUserIdAndDomain(userId, domain)
                         .orElseGet(() -> {
@@ -206,29 +206,53 @@ public class QuestService {
             case "feed_100":
                 return Math.min(100, user.getTotalFeeds());
             case "visit_all_8": {
-                List<String> themedSites = Arrays.asList(
-                        "pknu.ac.kr", "google.com", "naver.com", "youtube.com",
-                        "github.com", "linkedin.com", "namu.wiki", "chatgpt.com"
-                );
-                long count = themedSites.stream().filter(visitedDomains::contains).count();
-                return (int) Math.min(8, count);
+                // google.com 슬롯: google.com 또는 gemini.google.com 방문 시 충족
+                boolean visitedGoogle = visitedDomains.contains("google.com") || visitedDomains.contains("gemini.google.com");
+                boolean visitedPknu = visitedDomains.contains("pknu.ac.kr");
+                boolean visitedNaver = visitedDomains.contains("naver.com");
+                boolean visitedYoutube = visitedDomains.contains("youtube.com");
+                boolean visitedGithub = visitedDomains.contains("github.com");
+                boolean visitedLinkedin = visitedDomains.contains("linkedin.com");
+                boolean visitedNamu = visitedDomains.contains("namu.wiki");
+                boolean visitedChatgpt = visitedDomains.contains("chatgpt.com");
+                int count = 0;
+                if (visitedPknu) count++;
+                if (visitedGoogle) count++;
+                if (visitedNaver) count++;
+                if (visitedYoutube) count++;
+                if (visitedGithub) count++;
+                if (visitedLinkedin) count++;
+                if (visitedNamu) count++;
+                if (visitedChatgpt) count++;
+                return Math.min(8, count);
             }
             case "visit_ai_5": {
-                List<String> aiSites = Arrays.asList(
-                        "chatgpt.com", "grok.com", "claude.ai", "gemini.google.com", "perplexity.ai"
-                );
-                long count = aiSites.stream().filter(visitedDomains::contains).count();
-                return (int) Math.min(5, count);
+                // AI 5개 사이트: ChatGPT, Grok, Claude, Gemini(google.com도 포함), Perplexity
+                boolean visitedChatgptAi = visitedDomains.contains("chatgpt.com");
+                boolean visitedGrok = visitedDomains.contains("grok.com");
+                boolean visitedClaude = visitedDomains.contains("claude.ai");
+                // gemini.google.com 또는 google.com 방문 시 Gemini 슬롯 충족
+                boolean visitedGemini = visitedDomains.contains("gemini.google.com") || visitedDomains.contains("google.com");
+                boolean visitedPerplexity = visitedDomains.contains("perplexity.ai");
+                int count = 0;
+                if (visitedChatgptAi) count++;
+                if (visitedGrok) count++;
+                if (visitedClaude) count++;
+                if (visitedGemini) count++;
+                if (visitedPerplexity) count++;
+                return Math.min(5, count);
             }
             case "visit_gemini_yt_google_10": {
+                // Google 슬롯: google.com 또는 gemini.google.com 방문 횟수 합산
                 int gVisits = visitMap.getOrDefault("google.com", 0);
-                int ytVisits = visitMap.getOrDefault("youtube.com", 0);
                 int gemVisits = visitMap.getOrDefault("gemini.google.com", 0);
+                int ytVisits = visitMap.getOrDefault("youtube.com", 0);
+                int googleTotal = gVisits + gemVisits; // 두 도메인 합산
                 int passed = 0;
-                if (gVisits >= 10) passed++;
+                if (googleTotal >= 10) passed++;
                 if (ytVisits >= 10) passed++;
-                if (gemVisits >= 10) passed++;
-                return passed;
+                if (gemVisits >= 10) passed++; // Gemini 전용 슬롯
+                return Math.min(3, passed);
             }
             case "obtain_naver_namuwiki": {
                 boolean hasNaver = caughtMonsters.stream().anyMatch(cm -> {
@@ -264,7 +288,7 @@ public class QuestService {
         }
     }
 
-    private String normalizeDomain(String hostname) {
+    private String normalizeDomain(String hostname, String pathname) {
         String host = hostname.toLowerCase();
         if (host.contains("pknu.ac.kr")) return "pknu.ac.kr";
         if (host.contains("gemini.google.com")) return "gemini.google.com";
@@ -275,7 +299,9 @@ public class QuestService {
         if (host.contains("linkedin.com")) return "linkedin.com";
         if (host.contains("namu.wiki")) return "namu.wiki";
         if (host.contains("chatgpt.com") || host.contains("openai.com")) return "chatgpt.com";
-        if (host.contains("grok.com") || host.equals("x.com")) return "grok.com";
+        if (host.contains("grok.com")) return "grok.com";
+        // x.com/i/grok 경로일 때만 grok으로 처리 (일반 트위터 방문 제외)
+        if (host.equals("x.com") && pathname != null && pathname.startsWith("/i/grok")) return "grok.com";
         if (host.contains("claude.ai")) return "claude.ai";
         if (host.contains("perplexity.ai")) return "perplexity.ai";
         return null;

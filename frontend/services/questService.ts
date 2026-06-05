@@ -189,8 +189,8 @@ export class QuestService implements IQuestService {
     return await this.getQuests();
   }
 
-  async recordPageVisit(hostname: string): Promise<Quest[]> {
-    const domain = this.normalizeDomain(hostname);
+  async recordPageVisit(hostname: string, pathname?: string): Promise<Quest[]> {
+    const domain = this.normalizeDomain(hostname, pathname);
     if (!domain) return await this.getQuests();
 
     // Log to visited set locally as well for offline fallback
@@ -211,7 +211,8 @@ export class QuestService implements IQuestService {
           "X-User-Id": userId.toString()
         },
         body: JSON.stringify({
-          hostname: hostname
+          hostname: hostname,
+          pathname: pathname || ""
         })
       });
       
@@ -228,7 +229,7 @@ export class QuestService implements IQuestService {
     return await this.getQuests();
   }
 
-  private normalizeDomain(hostname: string): string | null {
+  private normalizeDomain(hostname: string, pathname?: string): string | null {
     const host = hostname.toLowerCase();
     if (host.includes("pknu.ac.kr")) return "pknu.ac.kr";
     if (host.includes("gemini.google.com")) return "gemini.google.com";
@@ -239,8 +240,9 @@ export class QuestService implements IQuestService {
     if (host.includes("linkedin.com")) return "linkedin.com";
     if (host.includes("namu.wiki")) return "namu.wiki";
     if (host.includes("chatgpt.com") || host.includes("openai.com")) return "chatgpt.com";
-    // x.com/i/grok: hostname is "x.com", check path in window.location
-    if (host === "x.com" || host.includes("grok.com")) return "grok.com";
+    // x.com/i/grok 경로일 때만 grok으로 처리 (일반 트위터 방문 제외)
+    if (host.includes("grok.com")) return "grok.com";
+    if (host === "x.com" && pathname && pathname.startsWith("/i/grok")) return "grok.com";
     if (host.includes("claude.ai")) return "claude.ai";
     if (host.includes("perplexity.ai")) return "perplexity.ai";
     return null;

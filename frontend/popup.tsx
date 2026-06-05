@@ -292,6 +292,37 @@ export default function IndexPopup() {
                 setTimeout(() => setMessage(null), 3000);
               };
 
+              // 실제 먹이주기 (퀘스트 카운트 포함)
+              const handleActualFeed = async () => {
+                try {
+                  const userInfo = await monsterService.getUserInfo();
+                  const userId = userInfo.userId || 1;
+                  // 배고픔 체크 없이 직접 sync-activity로 feed 카운트 증가
+                  const syncRes = await fetch(
+                    `${process.env.PLASMO_PUBLIC_API_URL || "http://localhost:8080/api"}/users/${userId}/sync-activity`,
+                    {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", "X-User-Id": userId.toString() },
+                      body: JSON.stringify({ feedIncrement: 1 })
+                    }
+                  );
+                  if (syncRes.ok) {
+                    setMessage("🍎 먹이주기 완료!");
+                    // 해피 애니메이션도 동시에 트리거
+                    const storage = new Storage();
+                    await storage.set("activeMonsterTrigger", "feed");
+                    // 퀘스트 새로고침
+                    await refreshQuests();
+                  } else {
+                    setMessage("❌ 먹이주기 실패, 다시 시도해주세요");
+                  }
+                } catch (e) {
+                  console.error("Feed failed:", e);
+                  setMessage("❌ 서버 연결 실패");
+                }
+                setTimeout(() => setMessage(null), 3000);
+              };
+
               return (
                 <div style={{
                   background: "#251d38",
@@ -325,7 +356,7 @@ export default function IndexPopup() {
                       🥩 배고픔 유도
                     </button>
                     <button
-                      onClick={() => triggerAnimation("feed")}
+                      onClick={handleActualFeed}
                       style={{
                         background: "linear-gradient(180deg, #2ecc71 0%, #27ae60 100%)",
                         color: "white",
@@ -338,7 +369,7 @@ export default function IndexPopup() {
                         boxShadow: "0 2px 4px rgba(0,0,0,0.3)"
                       }}
                     >
-                      🍎 먹이 주기 (행복)
+                      🍎 먹이 주기 (+퀘스트)
                     </button>
 
                     {showActions && (

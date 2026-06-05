@@ -208,7 +208,22 @@ export default function WebketMonsterOverlay() {
 
   useEffect(() => {
     // Record page visit quest progress across all configured sites
-    questService.recordPageVisit(window.location.hostname).catch(e => console.error("Quest update error:", e));
+    // Retry up to 3 times in case of transient errors (e.g. extension context invalidated during reload)
+    const tryRecordVisit = async (retries = 3) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          await questService.recordPageVisit(window.location.hostname, window.location.pathname);
+          return; // success
+        } catch (e: any) {
+          if (i < retries - 1) {
+            await new Promise(res => setTimeout(res, 1000 * (i + 1))); // 1s, 2s delay
+          } else {
+            console.error("Quest update error (all retries exhausted):", e);
+          }
+        }
+      }
+    };
+    tryRecordVisit();
   }, []);
 
   useEffect(() => {
