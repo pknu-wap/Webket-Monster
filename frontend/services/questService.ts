@@ -1,7 +1,30 @@
 import { Storage } from "@plasmohq/storage";
 import { monsterService } from "./monsterService";
 
-const storage = new Storage();
+const storage = new Storage({ area: "local" });
+
+// Shadow global fetch to enforce a default timeout of 3000ms.
+// This prevents frontend hanging/infinite loading if the server is offline or unreachable.
+const originalFetch = globalThis.fetch;
+const fetch = async (
+  resource: RequestInfo | URL,
+  options: RequestInit & { timeout?: number } = {}
+) => {
+  const { timeout = 3000 } = options;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await originalFetch(resource, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+};
 
 export interface QuestReward {
   expPotions: number;
