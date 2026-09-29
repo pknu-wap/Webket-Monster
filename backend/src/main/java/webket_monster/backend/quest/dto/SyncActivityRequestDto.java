@@ -12,5 +12,5 @@ import lombok.Setter;
 public class SyncActivityRequestDto {
     private String hostname;
     private String pathname; // x.com/i/grok 경로 판별에 사용
-    private int feedIncrement;
+    private Integer feedIncrement;
 }

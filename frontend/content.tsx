@@ -86,7 +86,7 @@ export default function WebketMonsterOverlay() {
   const [activeEffectVideoUrl, setActiveEffectVideoUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const storage = new Storage();
+    const storage = new Storage({ area: "local" });
 
     const loadActiveMonster = async () => {
       const userInfo = await monsterService.getUserInfo();
@@ -165,7 +165,7 @@ export default function WebketMonsterOverlay() {
   }, [activeMonsterInfo]);
 
   useEffect(() => {
-    const storage = new Storage();
+    const storage = new Storage({ area: "local" });
     const unwatch = storage.watch({
       "activeMonsterTrigger": (change) => {
         if (change.newValue === "effect") {
@@ -218,7 +218,7 @@ export default function WebketMonsterOverlay() {
 
     if (isHomeDomain) {
       const interval = setInterval(async () => {
-        const storage = new Storage();
+        const storage = new Storage({ area: "local" });
         await storage.set("activeMonsterTrigger", "action1");
       }, 10 * 60 * 1000); // 10 minutes
 
@@ -399,7 +399,7 @@ export default function WebketMonsterOverlay() {
 
     let app = new PIXI.Application();
     let isDestroyed = false;
-    const storage = new Storage();
+    const storage = new Storage({ area: "local" });
     let unwatch: (() => void) | null = null;
 
     const initActivePixi = async () => {
@@ -493,7 +493,7 @@ export default function WebketMonsterOverlay() {
             setAnimationState("happy");
             setActiveMonsterLevel(feedResult.newLevel);
             
-            const storage = new Storage();
+            const storage = new Storage({ area: "local" });
             await storage.set("userInfo", await monsterService.getUserInfo());
             
             if (feedResult.triggerAction2) {

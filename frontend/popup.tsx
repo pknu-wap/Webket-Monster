@@ -44,7 +44,7 @@ export default function IndexPopup() {
 
   // content.tsx에서 먹이주기 발생 시 인벤토리 실시간 반영
   useEffect(() => {
-    const storage = new Storage();
+    const storage = new Storage({ area: "local" });
     const unwatch = storage.watch({
       "inventory": async () => {
         setInventory(await monsterService.getInventory());
@@ -279,7 +279,7 @@ export default function IndexPopup() {
               const showEffect = currentStage === 3;
               
               const triggerAnimation = async (type: "hungry" | "feed" | "action1" | "action2") => {
-                const storage = new Storage();
+                const storage = new Storage({ area: "local" });
                 await storage.set("activeMonsterTrigger", type);
                 
                 let triggerMsg = "";
@@ -309,7 +309,7 @@ export default function IndexPopup() {
                   if (syncRes.ok) {
                     setMessage("🍎 먹이주기 완료!");
                     // 해피 애니메이션도 동시에 트리거
-                    const storage = new Storage();
+                    const storage = new Storage({ area: "local" });
                     await storage.set("activeMonsterTrigger", "feed");
                     // 퀘스트 새로고침
                     await refreshQuests();
@@ -414,7 +414,7 @@ export default function IndexPopup() {
                         onClick={async () => {
                           try {
                             const res = await monsterService.castEffect(activeCm.id);
-                            const storage = new Storage();
+                            const storage = new Storage({ area: "local" });
                             await storage.set("activeMonsterTrigger", "effect");
                             
                             if (res.success) {
@@ -426,7 +426,7 @@ export default function IndexPopup() {
                             setTimeout(() => setMessage(null), 3000);
                           } catch (e) {
                             console.error("Effect cast error:", e);
-                            const storage = new Storage();
+                            const storage = new Storage({ area: "local" });
                             await storage.set("activeMonsterTrigger", "effect");
                             setMessage("✨ 로컬 이펙트 스킬 시전!");
                             setTimeout(() => setMessage(null), 3000);
