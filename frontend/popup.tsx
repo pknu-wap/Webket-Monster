@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Storage } from "@plasmohq/storage";
 import { monsterService, UserInfo, Inventory, Monster, getEvolvedMonsterData, getRequiredExpForLevel } from "./services/monsterService";
 import { questService, Quest } from "./services/questService";
+import { FESTIVAL_PAGE_PATH } from "./festival/session";
 
 export default function IndexPopup() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
@@ -129,6 +130,23 @@ export default function IndexPopup() {
           Lv.1 트레이너 <span style={{ color: "#3498db" }}>{userInfo.nickname}</span>님
         </p>
       </div>
+
+      {/* UN평화축제 부스 화면 */}
+      <button
+        onClick={() => chrome.tabs.create({ url: chrome.runtime.getURL(FESTIVAL_PAGE_PATH) })}
+        style={{
+          padding: "8px 12px",
+          border: "none",
+          borderBottom: "2px solid #2d2440",
+          background: "#4b92db",
+          color: "#fffaf0",
+          fontWeight: "900",
+          fontSize: "13px",
+          cursor: "pointer"
+        }}
+      >
+        🕊️ 1분 평화 카드 찾기 (UN평화축제)
+      </button>
 
       {/* Item Inventory Bar */}
       <div style={{
