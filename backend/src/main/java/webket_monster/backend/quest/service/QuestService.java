@@ -134,7 +134,7 @@ public class QuestService {
         boolean triggerAction2 = false;
 
         // 먹이주기 처리
-        if (request.getFeedIncrement() > 0) {
+        if (request.getFeedIncrement() != null && request.getFeedIncrement() > 0) {
             for (int i = 0; i < request.getFeedIncrement(); i++) {
                 user.incrementFeeds();
                 if (user.getTotalFeeds() % 3 == 0) {

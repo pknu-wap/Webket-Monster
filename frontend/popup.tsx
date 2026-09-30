@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Storage } from "@plasmohq/storage";
 import { monsterService, UserInfo, Inventory, Monster, getEvolvedMonsterData, getRequiredExpForLevel } from "./services/monsterService";
 import { questService, Quest } from "./services/questService";
+import { FESTIVAL_PAGE_PATH } from "./festival/session";
 
 export default function IndexPopup() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
@@ -44,7 +45,7 @@ export default function IndexPopup() {
 
   // content.tsx에서 먹이주기 발생 시 인벤토리 실시간 반영
   useEffect(() => {
-    const storage = new Storage();
+    const storage = new Storage({ area: "local" });
     const unwatch = storage.watch({
       "inventory": async () => {
         setInventory(await monsterService.getInventory());
@@ -129,6 +130,23 @@ export default function IndexPopup() {
           Lv.1 트레이너 <span style={{ color: "#3498db" }}>{userInfo.nickname}</span>님
         </p>
       </div>
+
+      {/* UN평화축제 부스 화면 */}
+      <button
+        onClick={() => chrome.tabs.create({ url: chrome.runtime.getURL(FESTIVAL_PAGE_PATH) })}
+        style={{
+          padding: "8px 12px",
+          border: "none",
+          borderBottom: "2px solid #2d2440",
+          background: "#4b92db",
+          color: "#fffaf0",
+          fontWeight: "900",
+          fontSize: "13px",
+          cursor: "pointer"
+        }}
+      >
+        🕊️ 1분 평화 카드 찾기 (UN평화축제)
+      </button>
 
       {/* Item Inventory Bar */}
       <div style={{
@@ -279,7 +297,7 @@ export default function IndexPopup() {
               const showEffect = currentStage === 3;
               
               const triggerAnimation = async (type: "hungry" | "feed" | "action1" | "action2") => {
-                const storage = new Storage();
+                const storage = new Storage({ area: "local" });
                 await storage.set("activeMonsterTrigger", type);
                 
                 let triggerMsg = "";
@@ -309,7 +327,7 @@ export default function IndexPopup() {
                   if (syncRes.ok) {
                     setMessage("🍎 먹이주기 완료!");
                     // 해피 애니메이션도 동시에 트리거
-                    const storage = new Storage();
+                    const storage = new Storage({ area: "local" });
                     await storage.set("activeMonsterTrigger", "feed");
                     // 퀘스트 새로고침
                     await refreshQuests();
@@ -414,7 +432,7 @@ export default function IndexPopup() {
                         onClick={async () => {
                           try {
                             const res = await monsterService.castEffect(activeCm.id);
-                            const storage = new Storage();
+                            const storage = new Storage({ area: "local" });
                             await storage.set("activeMonsterTrigger", "effect");
                             
                             if (res.success) {
@@ -426,7 +444,7 @@ export default function IndexPopup() {
                             setTimeout(() => setMessage(null), 3000);
                           } catch (e) {
                             console.error("Effect cast error:", e);
-                            const storage = new Storage();
+                            const storage = new Storage({ area: "local" });
                             await storage.set("activeMonsterTrigger", "effect");
                             setMessage("✨ 로컬 이펙트 스킬 시전!");
                             setTimeout(() => setMessage(null), 3000);

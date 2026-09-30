@@ -1,6 +1,30 @@
 import { Storage } from "@plasmohq/storage";
 
-const storage = new Storage();
+const storage = new Storage({ area: "local" });
+const syncStorage = new Storage({ area: "sync" });
+
+// Shadow global fetch to enforce a default timeout of 3000ms.
+// This prevents frontend hanging/infinite loading if the server is offline or unreachable.
+const originalFetch = globalThis.fetch;
+const fetch = async (
+  resource: RequestInfo | URL,
+  options: RequestInit & { timeout?: number } = {}
+) => {
+  const { timeout = 3000 } = options;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await originalFetch(resource, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+};
 
 export interface MonsterEvolution {
   levelThreshold: number;
@@ -347,6 +371,32 @@ export interface IMonsterService {
 export class BackendMonsterService implements IMonsterService {
   async getUserInfo(): Promise<UserInfo> {
     let userInfo = await storage.get<UserInfo>("userInfo");
+    
+    // Migration: if local storage is empty, check sync storage (old storage)
+    if (!userInfo) {
+      try {
+        const syncUserInfo = await syncStorage.get<UserInfo>("userInfo");
+        if (syncUserInfo) {
+          userInfo = syncUserInfo;
+          await storage.set("userInfo", userInfo);
+          
+          // Also migrate inventory
+          const syncInv = await syncStorage.get<Inventory>("inventory");
+          if (syncInv) {
+            await storage.set("inventory", syncInv);
+          }
+          
+          // Also migrate quests
+          const syncQuests = await syncStorage.get<any>("quests");
+          if (syncQuests) {
+            await storage.set("quests", syncQuests);
+          }
+        }
+      } catch (e) {
+        console.error("Migration from sync storage failed:", e);
+      }
+    }
+
     if (!userInfo) {
       userInfo = { nickname: "Tamer", totalCaught: 0, activeMonsterId: null };
     }

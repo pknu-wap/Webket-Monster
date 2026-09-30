@@ -7,7 +7,23 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "plasmo dev",
     "build": "plasmo build",
-    "build:zip": "plasmo build --zip"
+    "build:zip": "plasmo build --zip",
+    "test:festival": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test festival/logic.test.ts",
+    "check:festival": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON festival/check-positions.ts",
+    "e2e:festival": "node festival-e2e.js"
+  },
+  "manifest": {
+    "web_accessible_resources": [
+      {
+        "resources": [
+          "assets/festival/*.webp",
+          "tabs/festival.html"
+        ],
+        "matches": [
+          "*://*.unpm.or.kr/*"
+        ]
+      }
+    ]
   },
   "keywords": [],
   "author": "",
